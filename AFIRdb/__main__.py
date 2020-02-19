@@ -18,3 +18,17 @@
 #
 
 # todo: fix header. add CLI.
+import argparse
+parser = argparse.ArgumentParser(description="fill DB with data")
+group = parser.add_mutually_exclusive_group()
+#group.add_argument("-v", "--verbose", action="store_true")
+#group.add_argument("-q", "--quiet", action="store_true")
+parser.add_argument('--eq_file', '-eq', type=str, help="the file with equilibrium states")
+parser.add_argument('--ts_file', '-ts', type=str, help="the file with transition states")
+parser.add_argument('--pt_file', '-pt', type=str, help="the file with scan pathways", default=None, required=False)
+parser.add_argument('--user', '-u', default='postgres', help='admin login')
+parser.add_argument('--password', '-p', required=True, help='admin pass')
+parser.add_argument('--host', '-H', default='localhost', help='host name')
+parser.add_argument('--port', '-P', default=54320, help='database port')
+parser.add_argument('--base', '-b', default='postgres', help='database name')
+args = parser.parse_args()
