@@ -24,18 +24,22 @@ class Barrier(StructuredRel):
     energy = FloatProperty()
 
 
+class Gate(StructuredRel):
+    mapping = JSONProperty()
+
+
 class Molecule(StructuredNode):
     cgrdb = IntegerProperty(index=True)
 
-    equilibrium_states = RelationshipTo('EquilibriumState', 'M2E')
-    reactant = RelationshipTo('Molecule', 'M2R')
-    product = RelationshipFrom('Molecule', 'R2M')
+    equilibrium_states = RelationshipTo('EquilibriumState', 'M2E', model=Gate)
+    reactant = RelationshipTo('Reaction', 'M2R')
+    product = RelationshipFrom('Reaction', 'R2M')
 
 
 class Reaction(StructuredNode):
     cgrdb = IntegerProperty(index=True)
 
-    transition_states = RelationshipTo('TransitionState', 'R2T')
+    transition_states = RelationshipTo('TransitionState', 'R2T', model=Gate)
     reactant = RelationshipFrom('Molecule', 'M2R', cardinality=One)
     product = RelationshipTo('Molecule', 'R2M', cardinality=One)
 
@@ -44,7 +48,7 @@ class EquilibriumState(StructuredNode):
     xyz = JSONProperty()
     energy = FloatProperty()
 
-    molecule = RelationshipFrom('Molecule', 'M2E', cardinality=One)
+    molecule = RelationshipFrom('Molecule', 'M2E', cardinality=One, model=Gate)
     transition_states = RelationshipTo('TransitionState', 'E2T', model=Barrier)
 
 
@@ -52,7 +56,7 @@ class TransitionState(StructuredNode):
     xyz = JSONProperty()
     energy = FloatProperty()
 
-    reaction = RelationshipFrom('Reaction', 'R2T', cardinality=One)
+    reaction = RelationshipFrom('Reaction', 'R2T', cardinality=One, model=Gate)
     equilibrium_states = RelationshipFrom('EquilibriumState', 'E2T', model=Barrier)
 
 
