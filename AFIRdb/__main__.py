@@ -16,19 +16,30 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
+from argparse import ArgumentParser, FileType
+from CGRdb import load_schema
+from neomodel import config
+from urllib.parse import urlparse
+from .populate import load_data
 
-# todo: fix header. add CLI.
-import argparse
-parser = argparse.ArgumentParser(description="fill DB with data")
-group = parser.add_mutually_exclusive_group()
-#group.add_argument("-v", "--verbose", action="store_true")
-#group.add_argument("-q", "--quiet", action="store_true")
-parser.add_argument('--eq_file', '-eq', type=str, help="the file with equilibrium states")
-parser.add_argument('--ts_file', '-ts', type=str, help="the file with transition states")
-parser.add_argument('--pt_file', '-pt', type=str, help="the file with scan pathways", default=None, required=False)
-parser.add_argument('--user', '-u', default='postgres', help='admin login')
-parser.add_argument('--password', '-p', required=True, help='admin pass')
-parser.add_argument('--host', '-H', default='localhost', help='host name')
-parser.add_argument('--port', '-P', default=54320, help='database port')
-parser.add_argument('--base', '-b', default='postgres', help='database name')
+parser = ArgumentParser(description="fill DB with data")
+
+parser.add_argument('--eq_file', '-eq', type=FileType(), required=True, help='the file with equilibrium states')
+parser.add_argument('--ts_file', '-ts', type=FileType(), help='the file with transition states')
+parser.add_argument('--pt_file', '-pt', type=FileType(), help='the file with scan pathways')
+
+parser.add_argument('--postgres', '-pg', type=urlparse, required=True,
+                    help='postgres connection URL [//user:pass@host:port/schema]')
+parser.add_argument('--neo4j', '-nj', type=str, required=True, help='neo4j connection URL')
+
 args = parser.parse_args()
+
+if not args.ts_file and not args.pt_file:
+    print('At least ts_file or pt_file required')
+else:
+    # setup connections
+    pg = args.posrgres
+    load_schema(pg.path[1:], password=pg.password, port=pg.port, host=pg.hostname, user=pg.username)
+    config.DATABASE_URL = args.neo4j
+
+    load_data(args.eq_file, args.ts_file, args.pt_file)
