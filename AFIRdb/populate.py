@@ -30,8 +30,8 @@ equilibrium_data = namedtuple('EquilibriumGate', ['g_mol', 'g_eq', 'mol', 'energ
 
 def load_data(eq_file, ts_file, pt_file):
     nodes = {}
-    for n, log in enumerate(log_parser(eq_file)):
-        nodes[n] = put_equilibrium(log.mol, log.energy)
+    for log in log_parser(eq_file):
+        nodes[log.index] = put_equilibrium(log.mol, log.energy)
     if ts_file:
         for log in log_parser(ts_file):
             ts = put_transition(log.mol, log.energy, True, nodes[log.links[0]], nodes[log.links[1]])

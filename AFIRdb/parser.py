@@ -57,12 +57,12 @@ def parse(block):
             counter = n
             break
         at, x, y, z = i.split()
-        tmp.append([at, float(x), float(y), float(z)])
+        tmp.append((at, float(x), float(y), float(z)))
     links = None
     for i in block[1+counter:]:
         if i.startswith("CONNECTION"):
             _, _, a, _, b = i.split()
-            links = (a, b)
+            links = (int(a), int(b))
 
     return log_data(mol, energy, links, index)
 
