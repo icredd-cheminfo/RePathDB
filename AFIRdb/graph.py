@@ -17,7 +17,7 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from neomodel import (StructuredNode, StructuredRel, IntegerProperty, FloatProperty, JSONProperty, RelationshipTo,
-                      RelationshipFrom, One)
+                      RelationshipFrom, One, BooleanProperty)
 
 
 class Barrier(StructuredRel):
@@ -55,6 +55,7 @@ class EquilibriumState(StructuredNode):
 class TransitionState(StructuredNode):
     xyz = JSONProperty()
     energy = FloatProperty()
+    true_ts = BooleanProperty()
 
     reaction = RelationshipFrom('Reaction', 'R2T', cardinality=One, model=Gate)
     equilibrium_states = RelationshipFrom('EquilibriumState', 'E2T', model=Barrier)

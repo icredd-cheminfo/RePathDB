@@ -17,83 +17,39 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-
-from neomodel import config
-from .graph import Molecule, Reaction as gMolecule, gReaction
-from .graph import EquilibriumState, TransitionState, Barrier, Gate
-
-# todo: fix header. add code.
-
-
-node_prop = namedtuple("nodes", ["g_mol", "g_eq", "mol"])
-
-'''file format following:
-some information (several lines that will be not parsed)
-#  block start symbol
-'''
-def get_blocks(lines):
-    tmp=[]
-    blocks=[]
-    for i in lines:
-        if i[0]=="#":
-            #print(i)
-            blocks.append(tmp)
-            tmp=[]
-        tmp.append(i)
-    else:
-        blocks.append(tmp)
-    return blocks[1:]
+from CGRdb import Molecule, Reaction
+from CGRtools import MoleculeContainer, ReactionContainer
+from collections import namedtuple
+from pony.orm import db_session
+from .graph import Molecule as gMolecule, Reaction as gReaction, EquilibriumState, TransitionState
+from .parser import log_parser
 
 
-def get_ts(block, typ):
-    ts={}
-    atoms=[]
-    tmp=[]
-    xyz=""
-    for n,i in enumerate(block[1:],start=1):
-        if i[:6]=="Energy":
-            atoms.extend(tmp)
-            tmp=n
-            break
-        xyz+=i
-        at,x,y,z=i.split()
-        tmp.append(((n,at),(float(x),float(y),float(z))))
-    ts["Atoms"]=atoms
-    ts["Atoms_xyz"]=str(ts['Atoms'][-1][0][0])+"\n"+"\n"+xyz
-    a,_,b=block[tmp].split()
-    ts[a]=float(b)
-    for i in block[::-1]:
-        if i[:10]=="CONNECTION":
-            a,_,b,_,c=i.split()
-            ts[a]= (int(b),int(c))
-    ts["NUM"]=int(block[0].split()[4].rstrip(","))
-    ts["LABEL"]=typ+":"+str(ts["NUM"])
-    return ts
+equilibrium_data = namedtuple('EquilibriumGate', ['g_mol', 'g_eq', 'mol', 'energy'])
 
 
-def get_eq(block):
-    eq={}
-    atoms=[]
-    tmp=[]
-    xyz=""
-    for n,i in enumerate(block[1:],start=1):
-        if i[:6]=="Energy":
-            atoms.extend(tmp)
-            tmp=n
-            break
-        xyz+=i
-        at,x,y,z=i.split()
-        tmp.append(((n,at),(float(x),float(y),float(z))))
-    eq["Atoms"]=atoms
-    eq["Atoms_xyz"]=str(eq['Atoms'][-1][0][0])+"\n"+"\n"+xyz
-    a,_,b=block[tmp].split()
-    eq[a]=float(b)
-    eq["NUM"]=int(block[0].split()[4].rstrip(","))
-    return eq
+def load_data(eq_file, ts_file, pt_file):
+    nodes = {}
+    for n, log in enumerate(log_parser(eq_file)):
+        nodes[n] = put_equilibrium(log.mol, log.energy)
+    if ts_file:
+        for log in log_parser(ts_file):
+            ts = put_transition(log.mol, log.energy, True, nodes[log.links[0]], nodes[log.links[1]])
+            put_reaction(ts, nodes[log.links[0]], nodes[log.links[1]])
+            put_reaction(ts, nodes[log.links[1]], nodes[log.links[0]])
+    if pt_file:
+        for log in log_parser(pt_file):
+            ts = put_transition(log.mol, log.energy, False, nodes[log.links[0]], nodes[log.links[1]])
+            put_reaction(ts, nodes[log.links[0]], nodes[log.links[1]])
+            put_reaction(ts, nodes[log.links[1]], nodes[log.links[0]])
 
 
-def put_structure(mol, energy):
+def put_equilibrium(mol: MoleculeContainer, energy: float) -> equilibrium_data:
+    """
+    Push equilibrium state into both databases
+    """
     xyz = mol._conformers[0]
+
     with db_session:
         found = Molecule.find_structure(mol)
         if not found:
@@ -102,44 +58,22 @@ def put_structure(mol, energy):
         else:
             mapping = next(mol.get_mapping(found.structure))
     # push to graph
-    m = afir.Molecule(cgrdb=found.id).save()
-    e = afir.EquilibriumState(xyz=xyz, energy=energy).save()
+    m = gMolecule(cgrdb=found.id).save()
+    e = EquilibriumState(xyz=xyz, energy=energy).save()
     rel = e.molecule.connect(m)
     rel.mapping = mapping
     rel.save()
-
-    return node_prop(m, e, mol, energy)
-
-
-def put_reaction(ts_node, xyz, reactant, product, barrier)
-
-    reaction = ReactionContainer(reactants=[reactant.mol], products=[product.mol])
-    with db_session:
-        found = Reaction.find_structure(r)
-        if not found:
-            found = Reaction(r)
-            mapping = {x: x for x in xyz}
-        else:
-            mapping = next((~reaction).get_mapping(found.cgr))
-
-    # create cgr node (CGR)
-    m = afir.Reaction(cgrdb=found.id).save()
-    # connect cgrnode to ts (CGR -> TS)
-    rel = ts_node.reaction.connect(m)
-    # add map to relation CGR -> TS
-    rel.mapping = mapping
-    rel.save()
-    # connect mol node to CGR node (MOL -> CGR)
-    reactant.g_mol.product.connect(m)
-    # connect mol node to CGR node (MOL -> CGR)
-    product.g_mol.reactant.connect(m)
-
-    return
+    return equilibrium_data(m, e, mol, energy)
 
 
-def put_ts(mol, energy, reactant, product):
+def put_transition(mol: MoleculeContainer, energy: float, true_ts: bool, reactant: equilibrium_data,
+                   product: equilibrium_data) -> TransitionState:
+    """
+    Push transition state into both databases
+    """
     xyz = mol._conformers[0]
-    ts_node = afir.TransitionState(xyz=xyz, energy=energy).save()
+
+    ts_node = TransitionState(xyz=xyz, energy=energy, true_ts=true_ts).save()
     # connect equilibra state to transition state node (ES1 -> TS)
     rel = reactant.g_eq.transition_states.connect(ts_node)
     # add energy to connection ES1 -> TS
@@ -153,20 +87,32 @@ def put_ts(mol, energy, reactant, product):
     return ts_node
 
 
-def put_tss(parsed, nodes)
-    with StringIO(parsed['Atoms_xyz']) as s, XYZRead(s) as f:
-        mol = next(f)
-        a, b = parsed["CONNECTION"]
-        mol1 = nodes[a]
-        mol2 = nodes[b].mol
-    put_ts(mol, parsed["Energy"], nodes[a], nodes[b])
+def put_reaction(ts_node: TransitionState, reactant: equilibrium_data, product: equilibrium_data) -> gReaction:
+    """
+    Push reaction into both databases
+    """
+
+    reaction = ReactionContainer(reactants=[reactant.mol], products=[product.mol])
+    with db_session:
+        found = Reaction.find_structure(reaction)
+        if not found:
+            found = Reaction(reaction)
+            mapping = {x: x for x in ts_node.xyz}
+        else:
+            mapping = next((~reaction).get_mapping(found.cgr))
+
+    # create cgr node (CGR)
+    r = gReaction(cgrdb=found.id).save()
+    # connect cgrnode to ts (CGR -> TS)
+    rel = ts_node.reaction.connect(r)
+    # add map to relation CGR -> TS
+    rel.mapping = mapping
+    rel.save()
+    # connect mol node to CGR node (MOL -> CGR)
+    reactant.g_mol.product.connect(r)
+    # connect mol node to CGR node (MOL -> CGR)
+    product.g_mol.reactant.connect(r)
+    return r
 
 
-
-def put_structures(mols)
-    nodes = {}
-    for n, i in enumerate(mols):
-        with StringIO(parsed['Atoms_xyz']) as s, XYZRead(s) as f:
-            mol = next(f)
-            nodes[n] = put_struct(i, i["Energy"])
-    return nodes
+__all__ = ['load_data']
