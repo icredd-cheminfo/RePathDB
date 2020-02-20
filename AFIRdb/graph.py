@@ -57,7 +57,7 @@ class TransitionState(StructuredNode):
     energy = FloatProperty()
     true_ts = BooleanProperty()
 
-    reaction = RelationshipFrom('Reaction', 'R2T', cardinality=One, model=Gate)
+    reaction = RelationshipFrom('Reaction', 'R2T', model=Gate)
     equilibrium_states = RelationshipFrom('EquilibriumState', 'E2T', model=Barrier)
 
 
