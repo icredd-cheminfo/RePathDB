@@ -22,94 +22,47 @@ from collections import namedtuple
 from io import StringIO
 from typing import List
 
-
-log_data = namedtuple('Log', ['mol', 'energy', 'links'])
+xyz = XYZRead(StringIO()).from_xyz
+log_data = namedtuple('Log', ['mol', 'energy', 'links', 'index'])
 
 
 def log_parser(file) -> List[log_data]:
-    ...
+    result = []
+    for i in get_blocks(file):
+        result.append(parse(i))
+    return result
 
 
-'''file format following:
-some information (several lines that will be not parsed)
-#  block start symbol
-'''
-def get_blocks(lines):
-    tmp=[]
-    blocks=[]
-    for i in lines:
-        if i[0]=="#":
-            #print(i)
+def get_blocks(file):
+    tmp = []
+    blocks = []
+    for i in file:
+        if i[0] == "#":
             blocks.append(tmp)
-            tmp=[]
+            tmp = []
         tmp.append(i)
     else:
         blocks.append(tmp)
     return blocks[1:]
 
 
-def get_ts(block, typ):
-    ts={}
-    atoms=[]
-    tmp=[]
-    xyz=""
-    for n,i in enumerate(block[1:],start=1):
-        if i[:6]=="Energy":
-            atoms.extend(tmp)
-            tmp=n
+def parse(block):
+    tmp = []
+    counter = 0
+    index = int(block[0].split()[4].rstrip(","))
+    for n, i in enumerate(block[1:], start=1):
+        if i.startswith("Energy"):
+            mol = xyz(tmp)
+            energy = float(i.split()[2])
+            counter = n
             break
-        xyz+=i
-        at,x,y,z=i.split()
-        tmp.append(((n,at),(float(x),float(y),float(z))))
-    ts["Atoms"]=atoms
-    ts["Atoms_xyz"]=str(ts['Atoms'][-1][0][0])+"\n"+"\n"+xyz
-    a,_,b=block[tmp].split()
-    ts[a]=float(b)
-    for i in block[::-1]:
-        if i[:10]=="CONNECTION":
-            a,_,b,_,c=i.split()
-            ts[a]= (int(b),int(c))
-    ts["NUM"]=int(block[0].split()[4].rstrip(","))
-    ts["LABEL"]=typ+":"+str(ts["NUM"])
-    return ts
+        at, x, y, z = i.split()
+        tmp.append([at, float(x), float(y), float(z)])
+    links = None
+    for i in block[1+counter:]:
+        if i.startswith("CONNECTION"):
+            _, _, a, _, b = i.split()
+            links = (a, b)
 
+    return log_data(mol, energy, links, index)
 
-def get_eq(block):
-    eq={}
-    atoms=[]
-    tmp=[]
-    xyz=""
-    for n,i in enumerate(block[1:],start=1):
-        if i[:6]=="Energy":
-            atoms.extend(tmp)
-            tmp=n
-            break
-        xyz+=i
-        at,x,y,z=i.split()
-        tmp.append(((n,at),(float(x),float(y),float(z))))
-    eq["Atoms"]=atoms
-    eq["Atoms_xyz"]=str(eq['Atoms'][-1][0][0])+"\n"+"\n"+xyz
-    a,_,b=block[tmp].split()
-    eq[a]=float(b)
-    eq["NUM"]=int(block[0].split()[4].rstrip(","))
-    return eq
-
-
-
-def put_tss(parsed, nodes):
-    with StringIO(parsed['Atoms_xyz']) as s, XYZRead(s) as f:
-        mol = next(f)
-        a, b = parsed["CONNECTION"]
-        mol1 = nodes[a]
-        mol2 = nodes[b].mol
-    put_ts(mol, parsed["Energy"], nodes[a], nodes[b])
-
-
-
-def put_structures(mols):
-    nodes = {}
-    for n, i in enumerate(mols):
-        with StringIO(parsed['Atoms_xyz']) as s, XYZRead(s) as f:
-            mol = next(f)
-            nodes[n] = put_struct(i, i["Energy"])
-    return nodes
