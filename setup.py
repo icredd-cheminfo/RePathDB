@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 #  Copyright 2020 Ramil Nugmanov <nougmanoff@protonmail.com>
+#  Copyright 2020 Timur Gimadiev <timur.gimadiev@gmail.com>
 #  This file is part of AFIRdb.
 #
 #  AFIRdb is free software; you can redistribute it and/or modify
@@ -31,7 +32,7 @@ setup(
     url='https://github.com/TimurGimadiev/AFIRdb',
     license='LGPLv3',
     author='Dr. Timur Gimadiev',
-    author_email='',  # todo: fix
+    author_email='timur.gimadiev@gmail.com',
     python_requires='>=3.7.0',
     install_requires=['CGRdb>=4.0.0,<4.1', 'neomodel>=3.3.2'],
     long_description=(Path(__file__).parent / 'README.md').open().read(),

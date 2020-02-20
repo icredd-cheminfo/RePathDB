@@ -60,4 +60,4 @@ class TransitionState(StructuredNode):
     equilibrium_states = RelationshipFrom('EquilibriumState', 'E2T', model=Barrier)
 
 
-__all__ = ['Molecule', 'Reaction', 'EquilibriumState', 'TransitionState', 'Barrier']
+__all__ = ['Molecule', 'Reaction', 'EquilibriumState', 'TransitionState', 'Barrier', 'Gate']

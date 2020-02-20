@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #  Copyright 2020 Ramil Nugmanov <nougmanoff@protonmail.com>
+#  Copyright 2020 Timur Gimadiev <timur.gimadiev@gmail.com>
 #  This file is part of AFIRdb.
 #
 #  AFIRdb is free software; you can redistribute it and/or modify
