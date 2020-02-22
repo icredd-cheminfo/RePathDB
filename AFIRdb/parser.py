@@ -65,4 +65,3 @@ def parse(block):
             links = (int(a), int(b))
 
     return log_data(mol, energy, links, index)
-
