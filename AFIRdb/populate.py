@@ -20,7 +20,7 @@
 from CGRdb import Molecule, Reaction
 from CGRtools import MoleculeContainer, ReactionContainer
 from collections import namedtuple
-from pony.orm import db_session
+from pony.orm import db_session, flush
 from .graph import Molecule as gMolecule, Reaction as gReaction, EquilibriumState, TransitionState
 from .parser import log_parser
 
@@ -54,11 +54,12 @@ def put_equilibrium(mol: MoleculeContainer, energy: float) -> equilibrium_data:
         found = Molecule.find_structure(mol)
         if not found:
             found = Molecule(mol)
+            flush()
+            m = gMolecule(cgrdb=found.id).save()
             mapping = {x: x for x in xyz}
         else:
+            m = gMolecule.nodes.get(cgrdb=found.id)
             mapping = next(mol.get_mapping(found.structure))
-    # push to graph
-    m = gMolecule(cgrdb=found.id).save()
     e = EquilibriumState(xyz=xyz, energy=energy).save()
     rel = e.molecule.connect(m)
     rel.mapping = mapping
@@ -97,12 +98,13 @@ def put_reaction(ts_node: TransitionState, reactant: equilibrium_data, product: 
         found = Reaction.find_structure(reaction)
         if not found:
             found = Reaction(reaction)
+            flush()
+            # create cgr node (CGR)
+            r = gReaction(cgrdb=found.id).save()
             mapping = {x: x for x in ts_node.xyz}
         else:
+            r = gReaction.nodes.get(cgrdb=found.id)
             mapping = next((~reaction).get_mapping(found.cgr))
-
-    # create cgr node (CGR)
-    r = gReaction(cgrdb=found.id).save()
     # connect cgrnode to ts (CGR -> TS)
     rel = ts_node.reaction.connect(r)
     # add map to relation CGR -> TS

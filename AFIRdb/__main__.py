@@ -39,7 +39,7 @@ if not args.ts_file and not args.pt_file:
     print('At least ts_file or pt_file required')
 else:
     # setup connections
-    pg = args.posrgres
+    pg = args.postgres
     load_schema(pg.path[1:], password=pg.password, port=pg.port, host=pg.hostname, user=pg.username)
     config.DATABASE_URL = args.neo4j
 
