@@ -53,6 +53,7 @@ def put_equilibrium(mol: MoleculeContainer, energy: float) -> equilibrium_data:
     with db_session:
         found = Molecule.find_structure(mol)
         if not found:
+            mol.clean2d()
             found = Molecule(mol)
             flush()
             m = gMolecule(cgrdb=found.id).save()
@@ -94,17 +95,21 @@ def put_reaction(ts_node: TransitionState, reactant: equilibrium_data, product: 
     """
 
     reaction = ReactionContainer(reactants=[reactant.mol], products=[product.mol])
+    barrier = ts_node.energy-reactant.energy
     with db_session:
         found = Reaction.find_structure(reaction)
         if not found:
             found = Reaction(reaction)
             flush()
             # create cgr node (CGR)
-            r = gReaction(cgrdb=found.id).save()
+            r = gReaction(cgrdb=found.id, energy=barrier).save()
             mapping = {x: x for x in ts_node.xyz}
         else:
             r = gReaction.nodes.get(cgrdb=found.id)
             mapping = next((~reaction).get_mapping(found.cgr))
+            if r.energy > barrier:
+                r.energy = barrier
+                r.save()
     # connect cgrnode to ts (CGR -> TS)
     rel = ts_node.reaction.connect(r)
     # add map to relation CGR -> TS

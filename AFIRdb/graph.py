@@ -128,6 +128,7 @@ class Molecule(StructuredNode, GetMethod):
 
 class Reaction(StructuredNode, GetMethod):
     cgrdb = IntegerProperty(index=True)
+    energy = FloatProperty()
 
     transition_states = RelationshipTo('TransitionState', 'R2T', model=Gate)
     reactant = RelationshipFrom('Molecule', 'M2R', cardinality=One)

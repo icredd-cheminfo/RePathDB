@@ -17,7 +17,29 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-dash = None
+from dash import Dash
+from os import getenv
+from .plugins import external_scripts, external_stylesheets
+from .layout import get_layout
 
+
+dash = Dash(__name__, external_stylesheets=external_stylesheets, external_scripts=external_scripts)
+dash.title = 'AFIRdb'
+dash.layout = get_layout(dash)
+dash.server.secret_key = getenv('SECRET_KEY', 'development')
+
+'''
+@dash.callback(Output('editor', 'upload'), [Input('editor', 'download')])
+def standardise(value):
+    if value:
+        with BytesIO(value.encode()) as f, MRVread(f) as i:
+            s = next(i)
+        s = aam.transform([s])[0]
+        with StringIO() as f:
+            with MRVwrite(f) as o:
+                o.write(s)
+            value = f.getvalue()
+    return value
+'''
 
 __all__ = ['dash']
