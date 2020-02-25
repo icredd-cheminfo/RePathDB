@@ -86,12 +86,53 @@ def search(mrv):
 @dash.callback([Output('reagent_img', 'src'), Output('product_img', 'src'), Output('paths-graph', 'figure')],
                [Input('table', 'selected_rows')], [State('table', 'data')])
 def search(row_id, table):
+    if not row_id:
+        return '', '', Figure()
+
     row = table[row_id[0]]
     m1 = Molecule.get(row['reactant'])
     m2 = Molecule.get(row['product'])
     with db_session:
         s1 = svg2html(m1.depict())
         s2 = svg2html(m2.depict())
+
+    paths = m1.get_effective_paths(m2, 5)
+    longest = max(len(x) for x, *_ in paths) - 1
+    start = paths[0].nodes[0]
+    target = paths[0].nodes[-1]
+    nodes = {target.id: (longest * 5, 0), start.id: (0, 0)}
+    edges = []
+    for r, (mol_rxn, costs, total) in enumerate(paths):
+        for n, (x, c) in enumerate(zip(mol_rxn[1:-1], costs), start=1):
+            if x.id not in nodes:
+                nodes[x.id] = (n * 5, r * 3)
+
+        for n in mol_rxn:
+            edges.append(nodes[n.id])
+        edges.append((None, None))
+
+    edge_trace = Scatter(
+        x=[x for x, _ in edges], y=[x for _, x in edges],
+        line=dict(width=0.5, color='#888'),
+        hoverinfo='none',
+        mode='lines')
+
+    node_trace = Scatter(
+        x=[x for x, _ in nodes.values()], y=[x for _, x in nodes.values()],
+        mode='markers',
+        hoverinfo='text',
+        marker=dict(
+            showscale=True,
+            # colorscale options
+            # 'Greys' | 'YlGnBu' | 'Greens' | 'YlOrRd' | 'Bluered' | 'RdBu' |
+            # 'Reds' | 'Blues' | 'Picnic' | 'Rainbow' | 'Portland' | 'Jet' |
+            # 'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis' |
+            colorscale='YlGnBu',
+            reversescale=True,
+            color=[],
+            size=10,
+            line_width=2))
+
     figure = Figure(data=[edge_trace, node_trace],
                     layout=Layout(
                         showlegend=False,
