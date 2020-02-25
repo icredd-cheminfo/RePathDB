@@ -21,8 +21,7 @@ from base64 import encodebytes
 from CGRdb import Molecule as pMolecule
 from CGRtools import MoleculeContainer, MRVRead, MRVWrite
 from dash import Dash
-from dash.dependencies import Input, Output
-from dash_html_components import Img
+from dash.dependencies import Input, Output, State
 from itertools import product
 from io import StringIO, BytesIO
 from os import getenv
@@ -30,6 +29,7 @@ from pony.orm import db_session
 from .layout import get_layout
 from .plugins import external_scripts, external_stylesheets
 from ..graph import Molecule
+from plotly.graph_objects import Figure, Layout, Scatter
 
 
 MoleculeContainer._render_config['mapping'] = False
@@ -38,8 +38,7 @@ color_map = ['rgb(0,104,55)', 'rgb(26,152,80)', 'rgb(102,189,99)', 'rgb(166,217,
 
 
 def svg2html(svg):
-    img = 'data:image/svg+xml;base64,' + encodebytes(svg.encode()).decode().replace('\n', '')
-    return f'<img src="{img}">'
+    return 'data:image/svg+xml;base64,' + encodebytes(svg.encode()).decode().replace('\n', '')
 
 
 dash = Dash(__name__, external_stylesheets=external_stylesheets, external_scripts=external_scripts)
@@ -82,6 +81,26 @@ def search(mrv):
             if tmp:
                 table = tmp
     return mrv, table
+
+
+@dash.callback([Output('reagent_img', 'src'), Output('product_img', 'src'), Output('paths-graph', 'figure')],
+               [Input('table', 'selected_rows')], [State('table', 'data')])
+def search(row_id, table):
+    row = table[row_id[0]]
+    m1 = Molecule.get(row['reactant'])
+    m2 = Molecule.get(row['product'])
+    with db_session:
+        s1 = svg2html(m1.depict())
+        s2 = svg2html(m2.depict())
+    figure = Figure(data=[edge_trace, node_trace],
+                    layout=Layout(
+                        showlegend=False,
+                        hovermode='closest',
+                        margin=dict(b=20, l=5, r=5, t=40),
+                        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+                    )
+    return s1, s2, figure
 
 
 __all__ = ['dash']

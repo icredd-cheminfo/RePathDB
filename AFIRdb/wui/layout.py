@@ -18,7 +18,7 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from dash_core_components import Markdown, Graph
-from dash_html_components import Div, H1, Hr
+from dash_html_components import Div, H1, Hr, Img
 from dash_marvinjs import DashMarvinJS
 from dash_table import DataTable
 
@@ -41,8 +41,9 @@ def get_layout(app):
                 Div([DataTable(id='table', columns=[{'name': 'Reactant', 'id': 'reactant'},
                                                     {'name': 'Product', 'id': 'product'},
                                                     {'name': 'Reactant SMILES', 'id': 'reactant_structure'},
-                                                    {'name': 'Product SMILES', 'id': 'product_structure'}],
-                               style_table={'maxHeight': '300px', 'overflowY': 'scroll'})],
+                                                    {'name': 'Product SMILES', 'id': 'product_structure'}], row_selectable='single',
+                               style_table={'maxHeight': '300px', 'overflowY': 'scroll'}), Div([Img(src='', id='reagent_img'),
+                                                                                                Img(src='', id='product_img')])],
                     className='col-md-6')
                 ], className='row col-md-12')
 
