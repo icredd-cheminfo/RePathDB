@@ -39,7 +39,10 @@ def get_layout(app):
                         ], className='col'),
                     ], className='col-md-6'),
                 Div([DataTable(id='table', columns=[{'name': 'Reactant', 'id': 'reactant'},
-                                                    {'name': 'Product', 'id': 'product'}])],
+                                                    {'name': 'Product', 'id': 'product'},
+                                                    {'name': 'Reactant SMILES', 'id': 'reactant_structure'},
+                                                    {'name': 'Product SMILES', 'id': 'product_structure'}],
+                               style_table={'maxHeight': '300px', 'overflowY': 'scroll'})],
                     className='col-md-6')
                 ], className='row col-md-12')
 

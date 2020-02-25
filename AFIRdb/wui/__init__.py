@@ -22,6 +22,7 @@ from CGRdb import Molecule as pMolecule
 from CGRtools import MoleculeContainer, MRVRead, MRVWrite
 from dash import Dash
 from dash.dependencies import Input, Output
+from dash_html_components import Img
 from itertools import product
 from io import StringIO, BytesIO
 from os import getenv
@@ -37,7 +38,8 @@ color_map = ['rgb(0,104,55)', 'rgb(26,152,80)', 'rgb(102,189,99)', 'rgb(166,217,
 
 
 def svg2html(svg):
-    return 'data:image/svg+xml;base64,' + encodebytes(svg.encode()).decode().replace('\n', '')
+    img = 'data:image/svg+xml;base64,' + encodebytes(svg.encode()).decode().replace('\n', '')
+    return f'<img src="{img}">'
 
 
 dash = Dash(__name__, external_stylesheets=external_stylesheets, external_scripts=external_scripts)
@@ -48,7 +50,8 @@ dash.server.secret_key = getenv('SECRET_KEY', 'development')
 
 @dash.callback([Output('editor', 'upload'), Output('table', 'data')], [Input('editor', 'download')])
 def search(mrv):
-    table = [{'reactant': 'No results', 'product': 'No results'}]
+    table = [{'reactant': 'No results', 'product': 'No results', 'reactant_structure': 'No results',
+              'product_structure': 'No results'}]
     if mrv:
         with BytesIO(mrv.encode()) as f, MRVRead(f) as i:
             s = next(i)
@@ -65,10 +68,17 @@ def search(mrv):
                 m1 = pMolecule.find_substructures(s.reactants[0])
                 m2 = pMolecule.find_substructures(s.products[0])
                 if m1 and m2:
-                    for i, j in product((Molecule.nodes.get(cgrdb=m.id) for m in m1.molecules(pagesize=5)),
-                                        (Molecule.nodes.get(cgrdb=m.id) for m in m2.molecules(pagesize=5))):
+                    m1 = m1.molecules(pagesize=5)
+                    m2 = m2.molecules(pagesize=5)
+                    for m in m1:
+                        m.structure.implicify_hydrogens()
+                    for m in m2:
+                        m.structure.implicify_hydrogens()
+                    for i, j in product((Molecule.nodes.get(cgrdb=m.id) for m in m1),
+                                        (Molecule.nodes.get(cgrdb=m.id) for m in m2)):
                         if i.has_path(j):
-                            tmp.append({'reactant': i.id, 'product': j.id})
+                            tmp.append({'reactant': i.id, 'product': j.id,
+                                        'reactant_structure': str(i.structure), 'product_structure': str(j.structure)})
             if tmp:
                 table = tmp
     return mrv, table
