@@ -25,15 +25,16 @@ from .populate import load_data
 from .wui import dash
 
 
-def populate_core(args):
+def populate_core(args, db):
     if not args.ts_file and not args.pt_file:
         print('At least ts_file or pt_file required')
     else:
         load_data(args.eq_file, args.ts_file, args.pt_file)
 
 
-def web_core(args):
+def web_core(args, db):
     ds = args.listening
+    dash.server.before_first_request(db.cgr_db_config)
     dash.run_server(port=ds.port, host=ds.hostname, debug=args.debug)
 
 
@@ -60,9 +61,9 @@ parsed = parser.parse_args()
 if 'func' in parsed:
     # setup connections
     pg = parsed.postgres
-    load_schema(pg.path[1:], password=pg.password, port=pg.port, host=pg.hostname, user=pg.username)
+    db = load_schema(pg.path[1:], password=pg.password, port=pg.port, host=pg.hostname, user=pg.username)
     config.DATABASE_URL = parsed.neo4j
     # run utility
-    parsed.func(parsed)
+    parsed.func(parsed, db)
 else:
     parser.print_help()

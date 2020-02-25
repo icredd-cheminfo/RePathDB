@@ -57,6 +57,14 @@ class Molecule(StructuredNode, GetMethod):
     def depict(self):
         return self.structure.depict()
 
+    def has_path(self, target: 'Molecule'):
+        if target.id == self.id:
+            return False
+        q = f'''MATCH 
+                shortestPath((n:Molecule{{cgrdb:{self.cgrdb}}})-[:M2R|Reaction|:R2M*..]->(m:Molecule{{cgrdb:{target.cgrdb}}}))
+                RETURN 1 AS found'''
+        return bool(self.cypher(q)[0])
+
     def get_effective_paths(self, target: 'Molecule', limit: int = 1):
         if not limit:
             raise ValueError('limit should be positive')

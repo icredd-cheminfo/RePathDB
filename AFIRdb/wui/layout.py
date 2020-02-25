@@ -1,6 +1,33 @@
-from dash_html_components import Div, H1, Hr, Button, Label
+# -*- coding: utf-8 -*-
+#
+#  Copyright 2020 Ramil Nugmanov <nougmanoff@protonmail.com>
+#  Copyright 2020 Timur Gimadiev <timur.gimadiev@gmail.com>
+#  This file is part of AFIRdb.
+#
+#  AFIRdb is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Lesser General Public License as published by
+#  the Free Software Foundation; either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#  GNU Lesser General Public License for more details.
+#
+#  You should have received a copy of the GNU Lesser General Public License
+#  along with this program; if not, see <https://www.gnu.org/licenses/>.
+#
+from dash_core_components import Markdown, Graph
+from dash_html_components import Div, H1, Hr
 from dash_marvinjs import DashMarvinJS
-from dash_core_components import Dropdown, Input as InputField, Markdown
+from dash_table import DataTable
+
+
+readme = '''
+# Hey there
+    - My mighty helpfull advises should be here to navigate noobies in darkspace of visualisation
+    - ***star***
+'''
 
 
 def get_layout(app):
@@ -8,22 +35,16 @@ def get_layout(app):
                 Div([
                     Div([
                         DashMarvinJS(id='editor', marvin_url=app.get_asset_url('mjs/editor.html'), marvin_width='100%'),
-                        Markdown(
-    '''
-    # Hey there
-    - My mighty helpfull advises should be here to navigate noobies in darkspace of visualisation
-    - ***star***
-    '''
-                                )
+                        Markdown(readme)
                         ], className='col'),
                     ], className='col-md-6'),
-                Div([Markdown("DIV for: selection of path")], className='col-md-6')
+                Div([DataTable(id='table', columns=[{'name': 'Reactant', 'id': 'reactant'},
+                                                    {'name': 'Product', 'id': 'product'}])],
+                    className='col-md-6')
                 ], className='row col-md-12')
 
-    row_2 = Div([
-                Div([Markdown("DIV for: Some awesome graph will be shown here")], className='col-md-8'),
-                Div([Markdown("DIV for: Visualisation of some structure")], className='col-md-4'),
-                ], className='row col-md-12')
+    row_2 = Div([Div([Graph(id='paths-graph')], className='col-md-8'),
+                 Div([], id='structure', className='col-md-4')], className='row col-md-12')
 
-    layout = Div([H1("AFIR database visualisation",  style={'textAlign': 'center'}), Hr(), row_1, Hr(), row_2])
+    layout = Div([H1("AFIR database visualisation",  style={'textAlign': 'center'}), row_1, Hr(), row_2])
     return layout

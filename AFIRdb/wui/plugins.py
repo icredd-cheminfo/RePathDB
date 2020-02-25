@@ -1,50 +1,24 @@
+# -*- coding: utf-8 -*-
+#
+#  Copyright 2020 Ramil Nugmanov <nougmanoff@protonmail.com>
+#  Copyright 2020 Timur Gimadiev <timur.gimadiev@gmail.com>
+#  This file is part of AFIRdb.
+#
+#  AFIRdb is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Lesser General Public License as published by
+#  the Free Software Foundation; either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#  GNU Lesser General Public License for more details.
+#
+#  You should have received a copy of the GNU Lesser General Public License
+#  along with this program; if not, see <https://www.gnu.org/licenses/>.
+#
 external_stylesheets = [{'href': 'https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css',
                          'rel': 'stylesheet', 'crossorigin': 'anonymous',
                          'integrity': 'sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO'}]
 
-external_scripts = [{'src': 'https//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML'},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/build/plugins/sigma.parsers.json.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/build/sigma.require.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/plugins/sigma.renderers.edgeLabels/settings.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/plugins/sigma.renderers.edgeLabels/sigma.canvas.edges.labels.curve.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/plugins/sigma.renderers.edgeLabels/sigma.canvas.edges.labels.curvedArrow.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/plugins/sigma.renderers.edgeLabels/sigma.canvas.edges.labels.def.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/plugins/sigma.renderers.parallelEdges/sigma.canvas.edgehovers.curve.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/plugins/sigma.renderers.parallelEdges/sigma.canvas.edgehovers.curvedArrow.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/plugins/sigma.renderers.parallelEdges/sigma.canvas.edges.curve.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/plugins/sigma.renderers.parallelEdges/sigma.canvas.edges.curvedArrow.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/plugins/sigma.renderers.parallelEdges/sigma.canvas.edges.labels.curve.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/plugins/sigma.renderers.parallelEdges/utils.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/misc/sigma.misc.bindEvents.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/misc/sigma.misc.drawHovers.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/misc/sigma.misc.bindDOMEvents.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/misc/sigma.misc.animation.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/sigma.renderers.canvas.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/sigma.renderers.def.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/sigma.renderers.svg.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/sigma.renderers.webgl.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/canvas/sigma.canvas.edgehovers.arrow.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/canvas/sigma.canvas.edgehovers.curve.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/canvas/sigma.canvas.edgehovers.curvedArrow.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/canvas/sigma.canvas.edgehovers.def.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/canvas/sigma.canvas.edges.arrow.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/canvas/sigma.canvas.edges.curve.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/canvas/sigma.canvas.edges.curvedArrow.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/canvas/sigma.canvas.edges.def.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/canvas/sigma.canvas.hovers.def.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/canvas/sigma.canvas.extremities.def.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/canvas/sigma.canvas.labels.def.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/renderers/canvas/sigma.canvas.nodes.def.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/sigma.settings.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/sigma.core.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/conrad.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/captors/sigma.captors.mouse.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/captors/sigma.captors.touch.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/middlewares/sigma.middlewares.copy.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/middlewares/sigma.middlewares.rescale.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/classes/sigma.classes.camera.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/classes/sigma.classes.configurable.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/classes/sigma.classes.dispatcher.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/classes/sigma.classes.graph.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/classes/sigma.classes.edgequad.min.js"},
-                    {"src": "https://cdn.jsdelivr.net/npm/sigma@1.2.1/src/classes/sigma.classes.quad.min.js"}]
+external_scripts = [{'src': 'https//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML'}]
