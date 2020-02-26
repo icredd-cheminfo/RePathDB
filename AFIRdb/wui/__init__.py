@@ -26,13 +26,10 @@ from itertools import product
 from io import StringIO, BytesIO
 from os import getenv
 from pony.orm import db_session
-from .layout import get_layout, reactant_color, product_color
+from .layout import get_layout, reactant_color, product_color, reaction_color, molecule_color
 from .plugins import external_scripts, external_stylesheets
-from ..graph import Molecule
+from ..graph import Molecule, Reaction
 from plotly.graph_objects import Figure, Layout, Scatter
-
-reactant_color = '#A6A15E'
-product_color = '#D0B09E'
 
 MoleculeContainer._render_config['mapping'] = False
 color_map = ['rgb(0,104,55)', 'rgb(26,152,80)', 'rgb(102,189,99)', 'rgb(166,217,106)', 'rgb(217,239,139)',
@@ -102,15 +99,15 @@ def search(row_id, table):
     longest = max(len(x) for x, *_ in paths) - 1
     start = paths[0].nodes[0]
     target = paths[0].nodes[-1]
-    nodes = {target.id: (longest * 5, 0), start.id: (0, 0)}
+    nodes = {target.id: (longest * 5, 0, reactant_color, True), start.id: (0, 0, product_color, True)}
     edges = []
     for r, (mol_rxn, costs, total) in enumerate(paths):
         for n, (x, c) in enumerate(zip(mol_rxn[1:-1], costs), start=1):
             if x.id not in nodes:
-                nodes[x.id] = (n * 5, r * 3)
+                nodes[x.id] = (n * 5, r * 3, reaction_color if n % 2 else molecule_color, not bool(n % 2))
 
         for n in mol_rxn:
-            edges.append(nodes[n.id])
+            edges.append(nodes[n.id][:2])
         edges.append((None, None))
 
     edge_trace = Scatter(
@@ -120,20 +117,14 @@ def search(row_id, table):
         mode='lines')
 
     node_trace = Scatter(
-        x=[x for x, _ in nodes.values()], y=[x for _, x in nodes.values()],
+        x=[x[0] for x in nodes.values()], y=[x[1] for x in nodes.values()],
+        customdata=[(x, y[3]) for x, y in nodes.items()],
         mode='markers',
         hoverinfo='text',
         marker=dict(
-            showscale=True,
-            # colorscale options
-            # 'Greys' | 'YlGnBu' | 'Greens' | 'YlOrRd' | 'Bluered' | 'RdBu' |
-            # 'Reds' | 'Blues' | 'Picnic' | 'Rainbow' | 'Portland' | 'Jet' |
-            # 'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis' |
-            #colorscale='YlGnBu',
-            #reversescale=True,
-            color=['green' if x%2 == 0 else 'yellow' for x in nodes],
-            size=10,
-            line_width=2))
+            showscale=False,
+            color=[x[2] for x in nodes.values()],
+            size=10))
 
     figure = Figure(data=[edge_trace, node_trace],
                     layout=Layout(
@@ -146,8 +137,16 @@ def search(row_id, table):
     return s1, s2, figure
 
 
-@dash.callback(Output('structure','title'),[Input('paths-graph','clickData')])
+@dash.callback(Output('structure', 'title'), [Input('paths-graph', 'clickData')])
 def node_click_data(clickData):
-    print(clickData) #{'points': [{'curveNumber': 0, 'pointNumber': 21, 'pointIndex': 21, 'x': 15, 'y': 9}]}
+    _id, is_molecule = clickData['points'][0]['customdata']
+    with db_session:
+        if is_molecule:
+            node = Molecule.get(_id)
+            node
+    node = (Molecule if is_molecule else Reaction).get(_id)
+
     return 0
+
+
 __all__ = ['dash']

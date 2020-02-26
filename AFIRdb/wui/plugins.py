@@ -21,4 +21,4 @@ external_stylesheets = [{'href': 'https://stackpath.bootstrapcdn.com/bootstrap/4
                          'rel': 'stylesheet', 'crossorigin': 'anonymous',
                          'integrity': 'sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO'}]
 
-external_scripts = [{'src': 'https//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML'}]
+external_scripts = [{'src': 'https://cdnjs.cloudflare.com/ajax/libs/3Dmol/1.4.0/3Dmol-min.js'}]
