@@ -21,6 +21,7 @@ from dash_core_components import Markdown, Graph
 from dash_html_components import Div, H1, Hr, Img
 from dash_marvinjs import DashMarvinJS
 from dash_table import DataTable
+from mol3d_dash import Mol3dDash
 
 reactant_color = '#A6A15E'
 product_color = '#D0B09E'
@@ -65,7 +66,8 @@ def get_layout(app):
     ], className='row col-md-12')
 
     row_2 = Div([Div([Graph(id='paths-graph')], className='col-md-8'),
-                 Div([], id='structure', className='col-md-4')], className='row col-md-12')
+                 Div([Mol3dDash(id='structure')], className='col-md-4')],  style={'min-height': '300px'},
+                className='row col-md-12')
 
     layout = Div([H1("AFIR database visualisation", style={'textAlign': 'center'}), row_1, Hr(), row_2])
     return layout

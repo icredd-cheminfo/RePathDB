@@ -31,6 +31,7 @@ from .plugins import external_scripts, external_stylesheets
 from ..graph import Molecule, Reaction
 from plotly.graph_objects import Figure, Layout, Scatter
 
+
 MoleculeContainer._render_config['mapping'] = False
 color_map = ['rgb(0,104,55)', 'rgb(26,152,80)', 'rgb(102,189,99)', 'rgb(166,217,106)', 'rgb(217,239,139)',
              'rgb(254,224,139)']
@@ -47,7 +48,7 @@ dash.server.secret_key = getenv('SECRET_KEY', 'development')
 
 
 @dash.callback([Output('editor', 'upload'), Output('table', 'data')], [Input('editor', 'download')])
-def search(mrv):
+def search(mrv=None):
     table = [{'reactant': 'No results', 'product': 'No results', 'reactant_structure': 'No results',
               'product_structure': 'No results'}]
     if mrv:
@@ -137,16 +138,38 @@ def search(row_id, table):
     return s1, s2, figure
 
 
-@dash.callback(Output('structure', 'title'), [Input('paths-graph', 'clickData')])
+@dash.callback(Output('structure', 'value'), [Input('paths-graph', 'clickData')])
 def node_click_data(clickData):
+    if not clickData:
+        return {'atoms': [], 'bonds': []}
     _id, is_molecule = clickData['points'][0]['customdata']
+
     with db_session:
         if is_molecule:
             node = Molecule.get(_id)
-            node
-    node = (Molecule if is_molecule else Reaction).get(_id)
-
-    return 0
+            eq = node.equilibrium_states.order_by('energy').first()
+            mp = node.equilibrium_states.relationship(eq).mapping
+            xyz = {mp[k]: v for k, v in eq.xyz.items()}
+            s = node.structure
+            order_map = {n: i for i, n in enumerate(s)}
+            tmp = {'atoms': [{'elem': a.atomic_symbol, 'x': xyz[n][0], 'y': xyz[n][1], 'z': xyz[n][2]}
+                             for n, a in s.atoms()],
+                   'bonds': [{'atom1': order_map[n], 'atom2': order_map[m], 'maxorder': b.order}
+                             for n, m, b in s.bonds()]}
+        else:
+            tmp = {'atoms': [{'elem': 'C', 'x': 0.000517, 'y': 0, 'z': 0.000299},
+                             {'elem': 'N', 'x': 0.000517, 'y': 0, 'z': 1.394692},
+                             {'elem': 'C', 'x': 1.208097, 'y': 0, 'z': 2.091889},
+                             {'elem': 'C', 'x': 2.415677, 'y': 0, 'z': 1.394692},
+                             {'elem': 'C', 'x': 2.415677, 'y': 0, 'z': 0.000299},
+                             {'elem': 'C', 'x': 1.208097, 'y': 0, 'z': -0.696898}],
+                   'bonds': [{'atom1': 0, 'atom2': 1, 'maxorder': 1},
+                             {'atom1': 1, 'atom2': 2, 'maxorder': 2},
+                             {'atom1': 2, 'atom2': 3, 'maxorder': 1},
+                             {'atom1': 3, 'atom2': 4, 'maxorder': 3, 'to': 2},
+                             {'atom1': 4, 'atom2': 5, 'maxorder': 1, 'to': 1},
+                             {'atom1': 5, 'atom2': 0, 'maxorder': 2, 'from': 1}]}
+    return tmp
 
 
 __all__ = ['dash']
