@@ -26,11 +26,13 @@ from itertools import product
 from io import StringIO, BytesIO
 from os import getenv
 from pony.orm import db_session
-from .layout import get_layout
+from .layout import get_layout, reactant_color, product_color
 from .plugins import external_scripts, external_stylesheets
 from ..graph import Molecule
 from plotly.graph_objects import Figure, Layout, Scatter
 
+reactant_color = '#A6A15E'
+product_color = '#D0B09E'
 
 MoleculeContainer._render_config['mapping'] = False
 color_map = ['rgb(0,104,55)', 'rgb(26,152,80)', 'rgb(102,189,99)', 'rgb(166,217,106)', 'rgb(217,239,139)',
@@ -127,9 +129,9 @@ def search(row_id, table):
             # 'Greys' | 'YlGnBu' | 'Greens' | 'YlOrRd' | 'Bluered' | 'RdBu' |
             # 'Reds' | 'Blues' | 'Picnic' | 'Rainbow' | 'Portland' | 'Jet' |
             # 'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis' |
-            colorscale='YlGnBu',
-            reversescale=True,
-            color=[],
+            #colorscale='YlGnBu',
+            #reversescale=True,
+            color=['green' if x%2 == 0 else 'yellow' for x in nodes],
             size=10,
             line_width=2))
 
@@ -144,4 +146,8 @@ def search(row_id, table):
     return s1, s2, figure
 
 
+@dash.callback(Output('structure','title'),[Input('paths-graph','clickData')])
+def node_click_data(clickData):
+    print(clickData) #{'points': [{'curveNumber': 0, 'pointNumber': 21, 'pointIndex': 21, 'x': 15, 'y': 9}]}
+    return 0
 __all__ = ['dash']

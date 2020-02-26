@@ -22,12 +22,15 @@ from dash_html_components import Div, H1, Hr, Img
 from dash_marvinjs import DashMarvinJS
 from dash_table import DataTable
 
+reactant_color = '#A6A15E'
+product_color = '#D0B09E'
 
 readme = '''
 # Hey there
-    - My mighty helpfull advises should be here to navigate noobies in darkspace of visualisation
-    - ***star***
+- My mighty helpfull advises should be here to navigate noobies in darkspace of visualisation
+- ***star***
 '''
+
 
 
 def get_layout(app):
@@ -38,14 +41,24 @@ def get_layout(app):
                         Markdown(readme)
                         ], className='col'),
                     ], className='col-md-6'),
-                Div([DataTable(id='table', columns=[{'name': 'Reactant', 'id': 'reactant'},
-                                                    {'name': 'Product', 'id': 'product'},
+                Div([DataTable(id='table', columns=[{'name': 'Reactant', 'id': 'reactant', 'color': reactant_color},
+                                                    {'name': 'Product', 'id': 'product', 'color': product_color},
                                                     {'name': 'Reactant SMILES', 'id': 'reactant_structure'},
                                                     {'name': 'Product SMILES', 'id': 'product_structure'}], row_selectable='single',
-                               style_table={'maxHeight': '300px', 'overflowY': 'scroll'}), Div([Img(src='', id='reagent_img'),
-                                                                                                Img(src='', id='product_img')])],
-                    className='col-md-6')
-                ], className='row col-md-12')
+                               style_table={'maxHeight': '300px', 'overflowY': 'scroll'},
+                               hidden_columns=['reactant', 'product'],
+                               style_cell_conditional=[{
+                                        'if': {'column_id': 'reactant_structure'},
+                                        'backgroundColor': reactant_color
+                               },
+                               {
+                                        'if': {'column_id': 'product_structure'},
+                                        'backgroundColor': product_color
+                               }
+                               ]),
+                            Div([Div([Img(src='', id='reagent_img', width="100%", height="100%",style={'backgroundColor':reactant_color})]),
+                          Div([Img(src='', id='product_img', width="100%", height="100%",style={'backgroundColor':product_color})])],className='row-md-6')], className='col-md-6')
+    ], className='row col-md-12')
 
     row_2 = Div([Div([Graph(id='paths-graph')], className='col-md-8'),
                  Div([], id='structure', className='col-md-4')], className='row col-md-12')

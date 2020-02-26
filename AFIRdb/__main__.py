@@ -34,7 +34,10 @@ def populate_core(args, db):
 
 def web_core(args, db):
     ds = args.listening
-    dash.server.before_first_request(db.cgr_db_config)
+
+    @dash.server.before_request
+    def db_config():
+        db.cgr_db_config()
     dash.run_server(port=ds.port, host=ds.hostname, debug=args.debug)
 
 
@@ -61,9 +64,9 @@ parsed = parser.parse_args()
 if 'func' in parsed:
     # setup connections
     pg = parsed.postgres
-    db = load_schema(pg.path[1:], password=pg.password, port=pg.port, host=pg.hostname, user=pg.username)
+    dbs = load_schema(pg.path[1:], password=pg.password, port=pg.port, host=pg.hostname, user=pg.username)
     config.DATABASE_URL = parsed.neo4j
     # run utility
-    parsed.func(parsed, db)
+    parsed.func(parsed, dbs)
 else:
     parser.print_help()
