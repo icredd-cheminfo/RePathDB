@@ -25,7 +25,7 @@ from .graph import Molecule as gMolecule, Reaction as gReaction, EquilibriumStat
 from .parser import log_parser
 
 
-equilibrium_data = namedtuple('EquilibriumGate', ['mol', 'eq', 'energy'])
+equilibrium_data = namedtuple('EquilibriumGate', ['g_mol', 'g_eq', 'mol', 'energy'])
 
 
 def load_data(eq_file, ts_file, pt_file):
@@ -65,7 +65,7 @@ def put_equilibrium(mol: MoleculeContainer, energy: float) -> equilibrium_data:
     rel = e.molecule.connect(m)
     rel.mapping = mapping
     rel.save()
-    return equilibrium_data(m, e, energy)
+    return equilibrium_data(m, e, mol, energy)
 
 
 def put_transition(mol: MoleculeContainer, energy: float, true_ts: bool, reactant: equilibrium_data,
@@ -77,12 +77,12 @@ def put_transition(mol: MoleculeContainer, energy: float, true_ts: bool, reactan
 
     ts_node = TransitionState(xyz=xyz, energy=energy, true_ts=true_ts).save()
     # connect equilibra state to transition state node (ES1 -> TS)
-    rel = reactant.eq.transition_states.connect(ts_node)
+    rel = reactant.g_eq.transition_states.connect(ts_node)
     # add energy to connection ES1 -> TS
     rel.energy = energy - reactant.energy
     rel.save()
     # connect equilibra state to transition state node (ES2 -> TS)
-    rel = product.eq.transition_states.connect(ts_node)
+    rel = product.g_eq.transition_states.connect(ts_node)
     # add energy to connection ES2 -> TS
     rel.energy = energy - product.energy
     rel.save()
@@ -94,7 +94,7 @@ def put_reaction(ts_node: TransitionState, reactant: equilibrium_data, product: 
     Push reaction into both databases
     """
 
-    reaction = ReactionContainer(reactants=[reactant.mol.structure], products=[product.mol.structure])
+    reaction = ReactionContainer(reactants=[reactant.mol], products=[product.mol])
     barrier = ts_node.energy-reactant.energy
     with db_session:
         found = Reaction.find_structure(reaction)
@@ -116,9 +116,9 @@ def put_reaction(ts_node: TransitionState, reactant: equilibrium_data, product: 
     rel.mapping = mapping
     rel.save()
     # connect mol node to CGR node (MOL -> CGR)
-    reactant.mol.product.connect(r)
+    reactant.g_mol.product.connect(r)
     # connect mol node to CGR node (MOL -> CGR)
-    product.mol.reactant.connect(r)
+    product.g_mol.reactant.connect(r)
     return r
 
 
