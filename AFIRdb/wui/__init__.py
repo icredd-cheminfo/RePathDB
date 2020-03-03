@@ -139,13 +139,13 @@ def search(row_id, table):
 
 
 @dash.callback(Output('structure', 'value'), [Input('paths-graph', 'clickData')])
-def node_click_data(clickData):
-    if not clickData:
+def node_click_data(click_data):
+    if not click_data:
         return {'atoms': [], 'bonds': []}
-    if "customdata" not in clickData['points'][0]:
+    if "customdata" not in click_data['points'][0]:
         return {'atoms': [], 'bonds': []}
 
-    _id, is_molecule = clickData['points'][0]['customdata']
+    _id, is_molecule = click_data['points'][0]['customdata']
     with db_session:
         if is_molecule:
             node = Molecule.get(_id)
@@ -173,12 +173,12 @@ def node_click_data(clickData):
             for n, m, b in s.bonds():
                 if b.order is None:
                     bonds.append({'atom1': order_map[n], 'atom2': order_map[m],
-                                         'maxorder': b.p_order,
-                                         'from': 0})
+                                  'maxorder': b.p_order,
+                                  'from': 0})
                 elif b.p_order is None:
                     bonds.append({'atom1': order_map[n], 'atom2': order_map[m],
-                                         'maxorder': b.order,
-                                         'to': 0})
+                                  'maxorder': b.order,
+                                  'to': 0})
                 elif b.p_order == b.order:
                     bonds.append({'atom1': order_map[n], 'atom2': order_map[m],
                                   'maxorder': b.order,
@@ -186,15 +186,12 @@ def node_click_data(clickData):
                 else:
                     if b.order > b.p_order:
                         bonds.append({'atom1': order_map[n], 'atom2': order_map[m],
-                                             'maxorder': b.order,
-                                             'to': b.p_order})
+                                      'maxorder': b.order,
+                                      'to': b.p_order})
                     else:
                         bonds.append({'atom1': order_map[n], 'atom2': order_map[m],
                                       'maxorder': b.p_order,
                                       'from': b.order})
-    print(mp)
-    print(s)
-    print(tmp)
     return tmp
 
 

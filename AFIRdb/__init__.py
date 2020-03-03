@@ -17,4 +17,14 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
+from CGRdb import load_schema
+from neomodel import config
 from .graph import *
+
+
+def load_db(neo4j, pg_schema, **kwargs):
+    load_schema(pg_schema, **kwargs)
+    config.DATABASE_URL = neo4j
+
+
+__all__ = ['load_db', 'Molecule', 'Reaction']
