@@ -29,7 +29,9 @@ log_data = namedtuple('Log', ['mol', 'energy', 'links', 'index'])
 def log_parser(file) -> List[log_data]:
     result = []
     for i in get_blocks(file):
-        result.append(parse(i))
+        tmp = parse(i)
+        if tmp:
+            result.append(tmp)
     return result
 
 
@@ -62,6 +64,8 @@ def parse(block):
     for i in block[1+counter:]:
         if i.startswith("CONNECTION"):
             _, _, a, _, b = i.split()
+            if "??" in a or "??" in b:
+                return None
             links = (int(a), int(b))
 
     return log_data(mol, energy, links, index)

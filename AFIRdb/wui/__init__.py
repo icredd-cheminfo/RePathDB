@@ -125,7 +125,7 @@ def search(row_id, table):
         marker=dict(
             showscale=False,
             color=[x[2] for x in nodes.values()],
-            size=10))
+            size=15))
 
     figure = Figure(data=[edge_trace, node_trace],
                     layout=Layout(
@@ -142,8 +142,10 @@ def search(row_id, table):
 def node_click_data(clickData):
     if not clickData:
         return {'atoms': [], 'bonds': []}
-    _id, is_molecule = clickData['points'][0]['customdata']
+    if "customdata" not in clickData['points'][0]:
+        return {'atoms': [], 'bonds': []}
 
+    _id, is_molecule = clickData['points'][0]['customdata']
     with db_session:
         if is_molecule:
             node = Molecule.get(_id)
@@ -157,18 +159,42 @@ def node_click_data(clickData):
                    'bonds': [{'atom1': order_map[n], 'atom2': order_map[m], 'maxorder': b.order}
                              for n, m, b in s.bonds()]}
         else:
-            tmp = {'atoms': [{'elem': 'C', 'x': 0.000517, 'y': 0, 'z': 0.000299},
-                             {'elem': 'N', 'x': 0.000517, 'y': 0, 'z': 1.394692},
-                             {'elem': 'C', 'x': 1.208097, 'y': 0, 'z': 2.091889},
-                             {'elem': 'C', 'x': 2.415677, 'y': 0, 'z': 1.394692},
-                             {'elem': 'C', 'x': 2.415677, 'y': 0, 'z': 0.000299},
-                             {'elem': 'C', 'x': 1.208097, 'y': 0, 'z': -0.696898}],
-                   'bonds': [{'atom1': 0, 'atom2': 1, 'maxorder': 1},
-                             {'atom1': 1, 'atom2': 2, 'maxorder': 2},
-                             {'atom1': 2, 'atom2': 3, 'maxorder': 1},
-                             {'atom1': 3, 'atom2': 4, 'maxorder': 3, 'to': 2},
-                             {'atom1': 4, 'atom2': 5, 'maxorder': 1, 'to': 1},
-                             {'atom1': 5, 'atom2': 0, 'maxorder': 2, 'from': 1}]}
+            node = Reaction.get(_id)
+            ts = node.transition_states.order_by('energy').first()
+            mp = node.transition_states.relationship(ts).mapping
+            xyz = {mp[k]: v for k, v in ts.xyz.items()}
+            s = node.cgr
+            order_map = {n: i for i, n in enumerate(s)}
+            bonds = []
+            tmp = {'atoms': [{'elem': a.atomic_symbol, 'x': xyz[n][0], 'y': xyz[n][1], 'z': xyz[n][2]}
+                             for n, a in s.atoms()],
+                   'bonds': bonds}
+
+            for n, m, b in s.bonds():
+                if b.order is None:
+                    bonds.append({'atom1': order_map[n], 'atom2': order_map[m],
+                                         'maxorder': b.p_order,
+                                         'from': 0})
+                elif b.p_order is None:
+                    bonds.append({'atom1': order_map[n], 'atom2': order_map[m],
+                                         'maxorder': b.order,
+                                         'to': 0})
+                elif b.p_order == b.order:
+                    bonds.append({'atom1': order_map[n], 'atom2': order_map[m],
+                                  'maxorder': b.order,
+                                  })
+                else:
+                    if b.order > b.p_order:
+                        bonds.append({'atom1': order_map[n], 'atom2': order_map[m],
+                                             'maxorder': b.order,
+                                             'to': b.p_order})
+                    else:
+                        bonds.append({'atom1': order_map[n], 'atom2': order_map[m],
+                                      'maxorder': b.p_order,
+                                      'from': b.order})
+    print(mp)
+    print(s)
+    print(tmp)
     return tmp
 
 

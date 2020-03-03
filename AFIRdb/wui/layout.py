@@ -29,9 +29,8 @@ molecule_color = 'blue'
 reaction_color = 'red'
 
 readme = '''
-# Hey there
-- My mighty helpfull advises should be here to navigate noobies in darkspace of visualisation
-- ***star***
+# Readme
+- Help will be shown here
 '''
 
 
@@ -49,7 +48,7 @@ def get_layout(app):
                                             {'name': 'Product SMILES', 'id': 'product_structure'}],
                        row_selectable='single',
                        style_table={'maxHeight': '300px', 'overflowY': 'scroll'},
-                       hidden_columns=['reactant', 'product'],
+                       #hidden_columns=['reactant', 'product'],
                        style_cell_conditional=[{
                            'if': {'column_id': 'reactant_structure'},
                            'backgroundColor': reactant_color

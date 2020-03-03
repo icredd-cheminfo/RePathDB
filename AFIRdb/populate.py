@@ -30,18 +30,27 @@ equilibrium_data = namedtuple('EquilibriumGate', ['g_mol', 'g_eq', 'mol', 'energ
 
 def load_data(eq_file, ts_file, pt_file):
     nodes = {}
-    for log in log_parser(eq_file):
+    n = 0
+    for n, log in enumerate(log_parser(eq_file), start=1):
         nodes[log.index] = put_equilibrium(log.mol, log.energy)
+    else:
+        print("EQ processed in total: " + str(n))
     if ts_file:
-        for log in log_parser(ts_file):
+        n = 0
+        for n, log in enumerate(log_parser(ts_file), start=1):
             ts = put_transition(log.mol, log.energy, True, nodes[log.links[0]], nodes[log.links[1]])
             put_reaction(ts, nodes[log.links[0]], nodes[log.links[1]])
             put_reaction(ts, nodes[log.links[1]], nodes[log.links[0]])
+        else:
+            print("TS processed in total: " + str(n))
     if pt_file:
-        for log in log_parser(pt_file):
+        n = 0
+        for n, log in enumerate(log_parser(pt_file), start=1):
             ts = put_transition(log.mol, log.energy, False, nodes[log.links[0]], nodes[log.links[1]])
             put_reaction(ts, nodes[log.links[0]], nodes[log.links[1]])
             put_reaction(ts, nodes[log.links[1]], nodes[log.links[0]])
+        else:
+            print("PT processed in total: " + str(n))
 
 
 def put_equilibrium(mol: MoleculeContainer, energy: float) -> equilibrium_data:
