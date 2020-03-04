@@ -20,52 +20,117 @@
 from CGRtools import XYZRead
 from collections import namedtuple
 from io import StringIO
-from typing import List
+from typing import Tuple
 
 xyz = XYZRead(StringIO()).from_xyz
-log_data = namedtuple('Log', ['mol', 'energy', 'links', 'index'])
+log_data = namedtuple('Log', ['mol', 'energy', 'type'])
 
 
-def log_parser(file) -> List[log_data]:
-    result = []
-    for i in get_blocks(file):
-        tmp = parse(i)
-        if tmp:
-            result.append(tmp)
-    return result
+def log_parser(file) -> Tuple[log_data, log_data, log_data]:
+    is_ts = False
+    is_pt = False
+    for i in file:
+        if i.startswith("Update the reaction path"):
+            is_pt = True
+        elif i.startswith("IRC"):
+            is_ts = True
+        break
+    if is_ts:
+        result = ts_parser(file)
+        if len(result) == 3:
+            for n, r in enumerate(result):
+                if r.type == "TS":
+                    tmp = n
+                    break
+            result.insert(0, result.pop(tmp))
+            return result[0], result[1], result[2]
+        else:
+            raise ValueError
+    elif is_pt:
+        result = pt_parser(file)
+        if len(result) == 3:
+            for n, r in enumerate(result):
+                if r.type == "PT":
+                    tmp = n
+                    break
+            result.insert(0, result.pop(tmp))
+            return result[0], result[1], result[2]
+        else:
+            raise ValueError
 
 
-def get_blocks(file):
+def pt_parser(file):
+    structures = []
+    pts = []
     tmp = []
-    blocks = []
+    flag_struct = False
+    flag_eq = False
     for i in file:
         if i[0] == "#":
-            blocks.append(tmp)
-            tmp = []
-        tmp.append(i)
-    else:
-        blocks.append(tmp)
-    return blocks[1:]
+            flag_struct = True
+            if "EQ Converged" in i:
+                flag_eq = True
+            continue
+        if flag_struct:
+            if "Item" in i:
+                continue
+            if "ENERGY" in i:
+                structure = {}
+                structure["mol"] = xyz(tmp)
+                structure["energy"] = float(i.split()[1])
+                tmp = []
+                if flag_eq:
+                    structure["type"] = "EQ"
+                    structure = log_data(structure['mol'], structure['energy'], structure['type'])
+                    structures.append(structure)
+                else:
+                    structure["type"] = "PT"
+                    pts.append(structure)
+                flag_eq = False
+                flag_struct = False
+                continue
+            at, x, y, z = i.split()
+            tmp.append((at, float(x), float(y), float(z)))
+    structure = sorted(pts, key=lambda x: x["energy"], reverse=True)[0]
+    structure = log_data(structure['mol'], structure['energy'], structure['type'])
+    structures.append(structure)
+    return structures
 
 
-def parse(block):
+def ts_parser(file):
+    flag_ts = False
+    flag_eq = False
     tmp = []
-    counter = 0
-    index = int(block[0].split()[4].rstrip(","))
-    for n, i in enumerate(block[1:], start=1):
-        if i.startswith("Energy"):
-            mol = xyz(tmp)
-            energy = float(i.split()[2])
-            counter = n
-            break
-        at, x, y, z = i.split()
-        tmp.append((at, float(x), float(y), float(z)))
-    links = None
-    for i in block[1+counter:]:
-        if i.startswith("CONNECTION"):
-            _, _, a, _, b = i.split()
-            if "??" in a or "??" in b:
-                return None
-            links = (int(a), int(b))
-
-    return log_data(mol, energy, links, index)
+    structures = []
+    for i in file:
+        if flag_ts:
+            if i.startswith("ENERGY"):
+                flag_ts = False
+                structure = {}
+                structure["type"] = "TS"
+                structure["mol"] = xyz(tmp)
+                structure["energy"] = float(i.split()[2])
+                tmp = []
+                structure = log_data(structure['mol'], structure['energy'], structure['type'])
+                structures.append(structure)
+                continue
+            at, x, y, z = i.split()
+            tmp.append((at, float(x), float(y), float(z)))
+        elif flag_eq:
+            if i.startswith("ENERGY"):
+                flag_eq = False
+                structure = {}
+                structure["type"] = "EQ"
+                structure["mol"] = xyz(tmp)
+                structure["energy"] = float(i.split()[2])
+                tmp = []
+                structure = log_data(structure['mol'], structure['energy'], structure['type'])
+                structures.append(structure)
+                continue
+            at, x, y, z = i.split()
+            tmp.append((at, float(x), float(y), float(z)))
+        if i.startswith("INITIAL STRUCTURE"):
+            flag_ts = True
+        elif i.startswith("Optimized structure"):
+            flag_eq = True
+    return structures
