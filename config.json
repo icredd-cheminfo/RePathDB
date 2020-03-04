@@ -1,0 +1,20 @@
+{"molecule": {
+  "min_length": 2,
+  "max_length": 6,
+  "version": "2017",
+  "fingerprint_size": 12,
+  "bits_active": 2,
+  "bits_count": 4
+},
+"reaction": {
+  "min_length": 2,
+  "max_length": 6,
+  "cgr_dynbonds": 1,
+  "version": "2017",
+  "fingerprint_size": 12,
+  "bits_active": 2,
+  "bits_count": 4
+  },
+  "cache_size": 1024,
+  "packages": []
+}
