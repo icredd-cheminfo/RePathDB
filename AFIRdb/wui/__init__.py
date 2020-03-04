@@ -48,7 +48,7 @@ dash.server.secret_key = getenv('SECRET_KEY', 'development')
 
 
 @dash.callback([Output('editor', 'upload'), Output('table', 'data')], [Input('editor', 'download')])
-def search(mrv=None):
+def search(mrv):
     table = [{'reactant': 'No results', 'product': 'No results', 'reactant_structure': 'No results',
               'product_structure': 'No results'}]
     if mrv:
@@ -85,7 +85,7 @@ def search(mrv=None):
 
 @dash.callback([Output('reagent_img', 'src'), Output('product_img', 'src'), Output('paths-graph', 'figure')],
                [Input('table', 'selected_rows')], [State('table', 'data')])
-def search(row_id, table):
+def graph(row_id, table):
     if not row_id:
         return '', '', Figure()
 
@@ -98,9 +98,7 @@ def search(row_id, table):
 
     paths = m1.get_effective_paths(m2, 5)
     longest = max(len(x) for x, *_ in paths) - 1
-    start = paths[0].nodes[0]
-    target = paths[0].nodes[-1]
-    nodes = {target.id: (longest * 5, 0, reactant_color, True), start.id: (0, 0, product_color, True)}
+    nodes = {m1.id: (0, 0, reactant_color, True), m2.id: (longest * 5, 0, product_color, True)}
     edges = []
     for r, (mol_rxn, costs, total) in enumerate(paths):
         for n, (x, c) in enumerate(zip(mol_rxn[1:-1], costs), start=1):
@@ -139,7 +137,7 @@ def search(row_id, table):
 
 
 @dash.callback(Output('structure', 'value'), [Input('paths-graph', 'clickData')])
-def node_click_data(click_data):
+def draw(click_data):
     if not click_data:
         return {'atoms': [], 'bonds': []}
     if "customdata" not in click_data['points'][0]:
