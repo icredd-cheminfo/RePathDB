@@ -20,16 +20,17 @@
 from argparse import ArgumentParser, FileType, ArgumentDefaultsHelpFormatter
 from CGRdb import load_schema
 from neomodel import config
+from os.path import isdir, abspath
 from urllib.parse import urlparse
 from .populate import load_data
 from .wui import dash
 
 
 def populate_core(args, db):
-    if not args.ts_file and not args.pt_file:
-        print('At least ts_file or pt_file required')
+    if not isdir(args.files):
+        print('files path not a directory')
     else:
-        load_data(args.eq_file, args.ts_file, args.pt_file)
+        load_data(args.files, args.suffix)
 
 
 def web_core(args, db):
@@ -48,10 +49,9 @@ parser.add_argument('--neo4j', '-nj', type=str, required=True, help='neo4j conne
 
 subparsers = parser.add_subparsers(title='subcommands', description='available utilities')
 
-populate = subparsers.add_parser('populate', help='load data into DB')
-populate.add_argument('--eq_file', '-eq', type=FileType(), required=True, help='the file with equilibrium states')
-populate.add_argument('--ts_file', '-ts', type=FileType(), help='the file with transition states')
-populate.add_argument('--pt_file', '-pt', type=FileType(), help='the file with scan pathways')
+populate = subparsers.add_parser('populate', help='load data into DB', formatter_class=ArgumentDefaultsHelpFormatter)
+populate.add_argument('--files', '-f', type=abspath, required=True, help='the directory with log files', default='.')
+populate.add_argument('--suffix', '-s', type=str, help='the log-file extension', default='.log')
 populate.set_defaults(func=populate_core)
 
 web = subparsers.add_parser('wui', help='run WEB UI', formatter_class=ArgumentDefaultsHelpFormatter)

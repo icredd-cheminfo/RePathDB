@@ -20,6 +20,8 @@
 from CGRdb import Molecule, Reaction
 from CGRtools import MoleculeContainer, ReactionContainer
 from collections import namedtuple
+from os import listdir
+from os.path import join
 from pony.orm import db_session, flush
 from .graph import Molecule as gMolecule, Reaction as gReaction, EquilibriumState, TransitionState
 from .parser import log_parser
@@ -28,29 +30,21 @@ from .parser import log_parser
 equilibrium_data = namedtuple('EquilibriumGate', ['g_mol', 'g_eq', 'mol', 'energy'])
 
 
-def load_data(eq_file, ts_file, pt_file):
-    nodes = {}
-    n = 0
-    for n, log in enumerate(log_parser(eq_file), start=1):
-        nodes[log.index] = put_equilibrium(log.mol, log.energy)
-    else:
-        print("EQ processed in total: " + str(n))
-    if ts_file:
-        n = 0
-        for n, log in enumerate(log_parser(ts_file), start=1):
-            ts = put_transition(log.mol, log.energy, True, nodes[log.links[0]], nodes[log.links[1]])
-            put_reaction(ts, nodes[log.links[0]], nodes[log.links[1]])
-            put_reaction(ts, nodes[log.links[1]], nodes[log.links[0]])
-        else:
-            print("TS processed in total: " + str(n))
-    if pt_file:
-        n = 0
-        for n, log in enumerate(log_parser(pt_file), start=1):
-            ts = put_transition(log.mol, log.energy, False, nodes[log.links[0]], nodes[log.links[1]])
-            put_reaction(ts, nodes[log.links[0]], nodes[log.links[1]])
-            put_reaction(ts, nodes[log.links[1]], nodes[log.links[0]])
-        else:
-            print("PT processed in total: " + str(n))
+def load_data(files, suffix):
+    for f in listdir(files):
+        if not f.endswith(suffix):
+            continue
+        try:
+            ts, es1, es2 = log_parser(open(join(files, f)))
+        except ValueError:
+            continue
+
+        ed1 = put_equilibrium(es1.mol, es1.energy)
+        ed2 = put_equilibrium(es2.mol, es2.energy)
+        ts = put_transition(ts.mol, ts.energy, ts.type == 'TS', ed1, ed2)
+        put_reaction(ts, ed1, ed2)
+        put_reaction(ts, ed2, ed1)
+        print(f'processed: {f}')
 
 
 def put_equilibrium(mol: MoleculeContainer, energy: float) -> equilibrium_data:
