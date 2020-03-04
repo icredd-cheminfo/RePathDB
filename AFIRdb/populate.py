@@ -31,12 +31,13 @@ equilibrium_data = namedtuple('EquilibriumGate', ['g_mol', 'g_eq', 'mol', 'energ
 
 
 def load_data(files, suffix):
-    for f in listdir(files):
+    for f in sorted(listdir(files)):
         if not f.endswith(suffix):
             continue
         try:
             ts, es1, es2 = log_parser(open(join(files, f)))
         except ValueError:
+            print(f'invalid: {f}')
             continue
 
         ed1 = put_equilibrium(es1.mol, es1.energy)
