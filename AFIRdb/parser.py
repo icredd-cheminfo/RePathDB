@@ -27,36 +27,25 @@ log_data = namedtuple('Log', ['mol', 'energy', 'type'])
 
 
 def log_parser(file) -> Tuple[log_data, log_data, log_data]:
-    is_ts = False
-    is_pt = False
-    for i in file:
-        if i.startswith("Update the reaction path"):
-            is_pt = True
-        elif i.startswith("IRC"):
-            is_ts = True
-        break
-    if is_ts:
-        result = ts_parser(file)
-        if len(result) == 3:
-            for n, r in enumerate(result):
-                if r.type == "TS":
-                    tmp = n
-                    break
-            result.insert(0, result.pop(tmp))
-            return result[0], result[1], result[2]
-        else:
-            raise ValueError
-    elif is_pt:
+    line = next(file)
+    if line.startswith("Update the reaction path"):
         result = pt_parser(file)
         if len(result) == 3:
-            for n, r in enumerate(result):
-                if r.type == "PT":
-                    tmp = n
-                    break
-            result.insert(0, result.pop(tmp))
+            n = next(n for n, r in enumerate(result) if r.type == 'PT')
+            result.insert(0, result.pop(n))
             return result[0], result[1], result[2]
         else:
             raise ValueError
+    elif line.startswith("IRC"):
+        result = ts_parser(file)
+        if len(result) == 3:
+            n = next(n for n, r in enumerate(result) if r.type == 'TS')
+            result.insert(0, result.pop(n))
+            return result[0], result[1], result[2]
+        else:
+            raise ValueError
+    else:
+        raise ValueError('Invalid File')
 
 
 def pt_parser(file):
