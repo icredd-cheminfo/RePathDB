@@ -120,9 +120,9 @@ def put_reaction(ts_node: TransitionState, reactant: equilibrium_data, product: 
     rel.mapping = mapping
     rel.save()
     # connect mol node to CGR node (MOL -> CGR)
-    reactant.g_mol.product.connect(r)
+    reactant.g_mol.reactant.connect(r)
     # connect mol node to CGR node (MOL -> CGR)
-    product.g_mol.reactant.connect(r)
+    product.g_mol.product.connect(r)
     return r
 
 
