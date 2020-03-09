@@ -3,7 +3,7 @@ FROM ubuntu:18.04
 ENV DEBIAN_FRONTEND noninteractive
 
 # prepare system
-RUN wget -O - https://debian.neo4j.com/neotechnology.gpg.key | sudo apt-key add - && \
+RUN apt-get update && apt-get install wget -y && wget -O - https://debian.neo4j.com/neotechnology.gpg.key | apt-key add - && \
     echo "deb https://debian.neo4j.com stable 3.5" > /etc/apt/sources.list.d/neo4j.list
 
 RUN apt-get update && apt-get install git build-essential python3-dev python3-pip software-properties-common \
