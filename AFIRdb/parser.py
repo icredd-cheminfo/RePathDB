@@ -31,95 +31,46 @@ def log_parser(file) -> Tuple[log_data, log_data, log_data]:
     if line.startswith("Update the reaction path"):
         result = pt_parser(file)
         if len(result) == 3:
-            n = next(n for n, r in enumerate(result) if r.type == 'PT')
-            result.insert(0, result.pop(n))
-            return result[0], result[1], result[2]
+            return result
         else:
             raise ValueError
-    elif line.startswith("IRC"):
-        result = ts_parser(file)
-        if len(result) == 3:
-            n = next(n for n, r in enumerate(result) if r.type == 'TS')
-            result.insert(0, result.pop(n))
-            return result[0], result[1], result[2]
-        else:
-            raise ValueError
+
     else:
-        raise ValueError('Invalid File')
+        raise ValueError
 
 
 def pt_parser(file):
-    structures = []
     pts = []
     tmp = []
-    flag_struct = False
-    flag_eq = False
+    flag = False
     for i in file:
         if i[0] == "#":
-            flag_struct = True
-            if "EQ Converged" in i:
-                flag_eq = True
+            flag = True
             continue
-        if flag_struct:
+        if flag:
             if "Item" in i:
                 continue
             if "ENERGY" in i:
                 structure = {}
-                structure["mol"] = xyz(tmp)
+                structure["mol"] = tmp
                 structure["energy"] = float(i.split()[1])
+                structure['type'] = "TMP"
                 tmp = []
-                if flag_eq:
-                    structure["type"] = "EQ"
-                    structure = log_data(structure['mol'], structure['energy'], structure['type'])
-                    structures.append(structure)
-                else:
-                    structure["type"] = "PT"
-                    pts.append(structure)
-                flag_eq = False
-                flag_struct = False
+                pts.append(structure)
+                flag = False
                 continue
             at, x, y, z = i.split()
             tmp.append((at, float(x), float(y), float(z)))
+    pts[0]["type"] = "EQ"
+    pts[-1]["type"] = "EQ"
+    if len(pts) < 3:
+        raise ValueError
     structure = sorted(pts, key=lambda x: x["energy"], reverse=True)[0]
-    structure = log_data(structure['mol'], structure['energy'], structure['type'])
-    structures.append(structure)
+    if structure["type"] == "EQ":
+        raise ValueError
+    structure["type"] = "TS"
+    structures = (log_data(xyz(structure['mol']), structure['energy'], structure['type']),
+                  log_data(xyz(pts[0]['mol']), pts[0]['energy'], pts[0]['type']),
+                  log_data(xyz(pts[-1]['mol']), pts[-1]['energy'], pts[-1]['type']))
     return structures
 
-
-def ts_parser(file):
-    flag_ts = False
-    flag_eq = False
-    tmp = []
-    structures = []
-    for i in file:
-        if flag_ts:
-            if i.startswith("ENERGY"):
-                flag_ts = False
-                structure = {}
-                structure["type"] = "TS"
-                structure["mol"] = xyz(tmp)
-                structure["energy"] = float(i.split()[2])
-                tmp = []
-                structure = log_data(structure['mol'], structure['energy'], structure['type'])
-                structures.append(structure)
-                continue
-            at, x, y, z = i.split()
-            tmp.append((at, float(x), float(y), float(z)))
-        elif flag_eq:
-            if i.startswith("ENERGY"):
-                flag_eq = False
-                structure = {}
-                structure["type"] = "EQ"
-                structure["mol"] = xyz(tmp)
-                structure["energy"] = float(i.split()[2])
-                tmp = []
-                structure = log_data(structure['mol'], structure['energy'], structure['type'])
-                structures.append(structure)
-                continue
-            at, x, y, z = i.split()
-            tmp.append((at, float(x), float(y), float(z)))
-        if i.startswith("INITIAL STRUCTURE"):
-            flag_ts = True
-        elif i.startswith("Optimized structure"):
-            flag_eq = True
-    return structures
