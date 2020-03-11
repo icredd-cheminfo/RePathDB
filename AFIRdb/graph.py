@@ -46,6 +46,9 @@ class Mixin:
             return
         return o
 
+    def __hash__(self):
+        return self.id
+
 
 class Barrier(StructuredRel):
     energy = FloatProperty()
@@ -162,7 +165,7 @@ class Complex(StructuredNode, Mixin, metaclass=ExtNodeMeta):
     @db_session
     def structure(self):
         structure = []
-        for m in self.molecules.all():
+        for m in set(self.molecules.all()):
             s = m.structure
             for r in self.molecules.all_relationships(m):
                 structure.append(s.remap({int(k): v for k, v in r.mapping.items()}, copy=True))
