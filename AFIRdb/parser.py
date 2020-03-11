@@ -18,23 +18,19 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from CGRtools import XYZRead
+from CGRtools.containers import ReactionContainer
 from collections import namedtuple
 from io import StringIO
-from typing import Tuple
+from typing import Iterator
 
 xyz = XYZRead(StringIO()).from_xyz
-log_data = namedtuple('Log', ['mol', 'energy', 'type'])
 
 
-def log_parser(file) -> Tuple[log_data, log_data, log_data]:
+def log_parser(file) -> Iterator[ReactionContainer]:
     line = next(file)
     if line.startswith("Update the reaction path"):
-        result = pt_parser(file)
-        if len(result) == 3:
-            return result
-        else:
-            raise ValueError
-
+        for r in pt_parser(file):
+            yield r
     else:
         raise ValueError
 
@@ -69,8 +65,16 @@ def pt_parser(file):
     if structure["type"] == "EQ":
         raise ValueError
     structure["type"] = "TS"
-    structures = (log_data(xyz(structure['mol']), structure['energy'], structure['type']),
-                  log_data(xyz(pts[0]['mol']), pts[0]['energy'], pts[0]['type']),
-                  log_data(xyz(pts[-1]['mol']), pts[-1]['energy'], pts[-1]['type']))
-    return structures
+    mol1 = xyz(pts[0]['mol'])
+    mol1.meta['energy'] = pts[0]['energy']
+    mol1.meta['type'] = pts[0]['type']
+    mol2 = xyz(pts[-1]['mol'])
+    mol2.meta['energy'] = pts[-1]['energy']
+    mol2.meta['type'] = pts[-1]['type']
+    ts = xyz(structure['mol'])
+    ts.meta['energy'] = structure['energy']
+    ts.meta['type'] = structure['type']
+    a = ReactionContainer(reagents=[ts], reactants=[mol1], products=[mol2])
+    b = ReactionContainer(reagents=[ts], reactants=[mol2], products=[mol1])
+    return a, b
 
