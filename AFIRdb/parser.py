@@ -28,8 +28,7 @@ xyz = XYZRead(StringIO()).from_xyz
 def log_parser(file) -> Iterator[ReactionContainer]:
     line = next(file)
     if line.startswith("Update the reaction path"):
-        for r in pt_parser(file):
-            yield r
+        return pt_parser(file)
     else:
         raise ValueError
 

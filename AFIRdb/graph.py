@@ -16,7 +16,7 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-from CGRdb import Molecule as pMolecule, Reaction as pReaction
+from CGRdb import Molecule as pMolecule
 from CGRtools import MoleculeContainer, ReactionContainer
 from collections import namedtuple, Counter
 from functools import reduce
@@ -245,6 +245,10 @@ class Reaction(StructuredNode, Mixin, metaclass=ExtNodeMeta):
     product = RelationshipFrom('Complex', 'R2C', cardinality=One, model=Mapping)
 
     def __init__(self, structure: ReactionContainer = None, **kwargs):
+        """
+        :param structure: ReactionContainer. In reactants and products contain ES`s. In reagents contains TS.
+            ES`s and TS contains metadata key: energy with float value.
+        """
         if structure is not None:
             r = structure.reactants[0]
             p = structure.products[0]
