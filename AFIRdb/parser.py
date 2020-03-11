@@ -19,7 +19,6 @@
 #
 from CGRtools import XYZRead
 from CGRtools.containers import ReactionContainer
-from collections import namedtuple
 from io import StringIO
 from typing import Iterator
 
