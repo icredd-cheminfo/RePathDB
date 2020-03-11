@@ -58,7 +58,7 @@ class Mapping(StructuredRel):
     mapping = JSONProperty()
 
 
-class Brutto(StructuredNode, Mixin, metaclass=ExtNodeMeta):
+class Brutto(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     """
     Unique index of systems
     """
@@ -85,7 +85,7 @@ class Brutto(StructuredNode, Mixin, metaclass=ExtNodeMeta):
         return self.brutto
 
 
-class Molecule(StructuredNode, Mixin, metaclass=ExtNodeMeta):
+class Molecule(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     """
     Mapping of CGRdb Molecule into graph
     """
@@ -125,7 +125,7 @@ class Molecule(StructuredNode, Mixin, metaclass=ExtNodeMeta):
         return str(self.structure)
 
 
-class Complex(StructuredNode, Mixin, metaclass=ExtNodeMeta):
+class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     """
     Gate object for join Molecules from CGRdb with EquilibriumState`s
     """
@@ -185,7 +185,7 @@ class Complex(StructuredNode, Mixin, metaclass=ExtNodeMeta):
     __es__ = None  # ad-hoc for storing associated ES
 
 
-class EquilibriumState(StructuredNode, Mixin, metaclass=ExtNodeMeta):
+class EquilibriumState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     xyz = JSONProperty()
     energy = FloatProperty()
 
@@ -239,7 +239,7 @@ class Disabled:
         return paths
 
 
-class Reaction(StructuredNode, Mixin, metaclass=ExtNodeMeta):
+class Reaction(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     signature = StringProperty(unique_index=True, required=True)  # signature of ES2ES CGR
 
     brutto = RelationshipFrom('Brutto', 'B2R', cardinality=One)
@@ -318,7 +318,7 @@ class Reaction(StructuredNode, Mixin, metaclass=ExtNodeMeta):
         return str(self.structure)
 
 
-class TransitionState(StructuredNode, Mixin, metaclass=ExtNodeMeta):
+class TransitionState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     xyz = JSONProperty()
     energy = FloatProperty()
 
