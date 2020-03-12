@@ -10,3 +10,4 @@ python -m AFIRdb -eq urea12_EQ_list.log -ts urea12_TS_list.log -pg POSTGRES_CONN
 #start WEB User Interface (wui)
 python -m AFIRdb  -pg POSTGRES_CONNECTION_INFO("//user:port@host:port/table") -nj BOLT_CONNECTION_INFO("bolt://login:pass@host:port") wui -ls WEB_HOST
 
+neomodel_install_labels AFIRdb AFIRdb.graph --db bolt://login:pass@host:port
