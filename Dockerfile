@@ -3,11 +3,13 @@ FROM ubuntu:18.04
 ENV DEBIAN_FRONTEND noninteractive
 
 # prepare system
-RUN apt-get update && apt-get install wget -y && wget -O - https://debian.neo4j.com/neotechnology.gpg.key | apt-key add - && \
+RUN apt-get update && apt-get install wget git build-essential python3-dev python3-pip software-properties-common \
+    openjdk-11-jre postgresql-server-dev-10 postgresql-plpython3-10 -y
+
+RUN wget -O key https://debian.neo4j.com/neotechnology.gpg.key | apt-key add key && rm key && \
     echo "deb https://debian.neo4j.com stable 3.5" > /etc/apt/sources.list.d/neo4j.list
 
-RUN apt-get update && apt-get install git build-essential python3-dev python3-pip software-properties-common \
-    openjdk-11-jre neo4j postgresql-server-dev-10 postgresql-plpython3-10 -y
+RUN apt-get update && apt-get install neo4j -y
 
 # setup postgres
 COPY postgres.conf /etc/postgresql/10/main/conf.d/cgrdb.conf
