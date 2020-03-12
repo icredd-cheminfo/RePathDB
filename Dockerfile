@@ -4,19 +4,22 @@ ENV DEBIAN_FRONTEND noninteractive
 
 # prepare system
 RUN apt-get update && apt-get install wget git build-essential python3-dev python3-pip software-properties-common \
-    openjdk-11-jre postgresql-server-dev-10 postgresql-plpython3-10 -y
+    openjdk-11-jre postgresql-server-dev-10 postgresql-plpython3-10 ca-certificates -y
 
-RUN wget -O key https://debian.neo4j.com/neotechnology.gpg.key | apt-key add key && rm key && \
-    echo "deb https://debian.neo4j.com stable 3.5" > /etc/apt/sources.list.d/neo4j.list
+RUN wget -qO key "https://debian.neo4j.com/neotechnology.gpg.key"
+RUN apt-key add key && rm key
+RUN echo 'deb https://debian.neo4j.com stable 3.5' > /etc/apt/sources.list.d/neo4j.list
 
 RUN apt-get update && apt-get install neo4j -y
 
 # setup postgres
 COPY postgres.conf /etc/postgresql/10/main/conf.d/cgrdb.conf
-RUN service postgresql start && \
-    sudo -u postgres psql --command "ALTER USER postgres WITH PASSWORD 'afirdb';" && \
-    sudo -u postgres psql --command "CREATE SCHEMA reactions;"
 RUN echo "PATH = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'" >> /etc/postgresql/10/main/environment
+USER postgres
+RUN /etc/init.d/postgresql start && \
+    psql --command "CREATE SCHEMA reactions;" && \
+    psql --command "ALTER USER postgres WITH PASSWORD 'afirdb';"
+USER root
 
 # setup neo4j
 RUN neo4j-admin set-initial-password 'afirdb'
@@ -30,11 +33,15 @@ RUN git clone https://github.com/stsouko/smlar.git && \
 
 # setup CGRdb
 COPY config.json config.json
-RUN service postgresql start && cgrdb init -p afirdb && cgrdb create -p afirdb --name reactions --config config.json
+RUN service postgresql start && cgrdb init -p afirdb && cgrdb create -p afirdb --name reactions --config config.json && rm config.json
 
 # install AFIRdb
-COPY AFIRdb .
-RUN cd AFIRdb && pip3 install . && cd .. & rm -rf AFIRdb
+COPY AFIRdb tmp/AFIRdb
+COPY setup.py tmp/setup.py
+COPY README.md tmp/README.md
+COPY mol3d_dash-0.0.1-py3-none-any.whl tmp/mol3d_dash-0.0.1-py3-none-any.whl
+RUN pip3 install /tmp/mol3d_dash-0.0.1-py3-none-any.whl && rm tmp/mol3d_dash-0.0.1-py3-none-any.whl
+RUN cd tmp && pip3 install . && rm -rf AFIRdb setup.py README.md && cd ..
 
 # setup MarvinJS
 COPY mjs /usr/local/lib/python3.6/dist-packages/AFIRdb/wui/assets/mjs
@@ -43,5 +50,4 @@ COPY boot.sh /opt/boot
 VOLUME ["/var/log/postgresql", "/var/lib/postgresql"]
 EXPOSE 5000
 
-USER nouser
 ENTRYPOINT ["/opt/boot"]
