@@ -10,7 +10,11 @@ RUN wget -qO key "https://debian.neo4j.com/neotechnology.gpg.key"
 RUN apt-key add key && rm key
 RUN echo 'deb https://debian.neo4j.com stable 3.5' > /etc/apt/sources.list.d/neo4j.list
 
-RUN apt-get update && apt-get install neo4j -y
+RUN apt-get update && apt-get install neo4j zip -y
+RUN cd  /var/lib/neo4j/plugins/ && \
+wget -q -O tmp.zip https://s3-eu-west-1.amazonaws.com/com.neo4j.graphalgorithms.dist/neo4j-graph-algorithms-3.5.14.0-standalone.zip && \
+ unzip tmp.zip && rm tmp.zip
+COPY neo4j.conf /etc/neo4j/neo4j.conf
 
 # setup postgres
 COPY postgres.conf /etc/postgresql/10/main/conf.d/cgrdb.conf
@@ -47,7 +51,7 @@ RUN cd tmp && pip3 install . && rm -rf AFIRdb setup.py README.md && cd ..
 COPY mjs /usr/local/lib/python3.6/dist-packages/AFIRdb/wui/assets/mjs
 COPY boot.sh /opt/boot
 
-VOLUME ["/var/log/postgresql", "/var/lib/postgresql"]
+#VOLUME ["/var/log/postgresql", "/var/lib/postgresql"]
 EXPOSE 5000
 
 ENTRYPOINT ["/opt/boot"]
