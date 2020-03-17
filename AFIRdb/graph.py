@@ -74,8 +74,7 @@ class Brutto(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 raise ValueError('only structure argument allowed')
             brutto = ''.join(f'{a}{n}' for a, n in
                              sorted(Counter(a.atomic_symbol for _, a in structure.atoms()).items()))
-            self.id = self.get_or_create({'brutto': brutto}, lazy=True)[0].id
-            self.refresh()
+            super().__init__(id=self.get_or_create({'brutto': brutto}, lazy=True)[0].id, brutto=brutto)
         else:
             super().__init__(**kwargs)
 
@@ -105,8 +104,7 @@ class Molecule(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                     super().__init__(cgrdb=found.id)
                     self.save()
                 else:  # load existing or fix broken links
-                    self.id = self.get_or_create({'cgrdb': found.id}, lazy=True)[0].id
-                    self.refresh()
+                    super().__init__(id=self.get_or_create({'cgrdb': found.id}, lazy=True)[0].id, cgrdb=found.id)
         else:
             super().__init__(**kwargs)
 
@@ -143,8 +141,7 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
             try:
                 self.save()
             except UniqueProperty:  # already exists
-                self.id = self.get_or_create({'signature': str(structure)}, lazy=True)[0].id
-                self.refresh()
+                self.id = self.nodes.get(signature=str(structure), lazy=True)  # get id of existing node
                 e = EquilibriumState(structure)
                 if not self.equilibrium_states.is_connected(e):  # only new ES need connection from complex.
                     self.equilibrium_states.connect(e, {'mapping': next(structure.get_mapping(self.structure))})
@@ -263,8 +260,7 @@ class Reaction(Mixin, StructuredNode, metaclass=ExtNodeMeta):
             try:
                 self.save()
             except UniqueProperty:  # reaction already exists
-                self.id = self.get_or_create({'signature': str(cgr)}, lazy=True)[0].id
-                self.refresh()
+                self.id = self.nodes.get(signature=str(cgr), lazy=True)  # get id of existing node
                 ts = TransitionState(t)
                 if not self.transition_states.is_connected(ts):  # skip already connected TS
                     rc = Complex(r)
