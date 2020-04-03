@@ -57,6 +57,8 @@ class Barrier(StructuredRel):
 class Mapping(StructuredRel):
     mapping = JSONProperty()
 
+class M_and_B(Mapping,Barrier):
+    pass
 
 class Brutto(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     """
@@ -108,6 +110,38 @@ class Molecule(Mixin, StructuredNode, metaclass=ExtNodeMeta):
         else:
             super().__init__(**kwargs)
 
+    def has_path(self, target: 'Molecule'):
+        if target.id == self.id:
+            return False
+        q = f'''MATCH path = (a:Molecule{{cgrdb:{self.cgrdb}}})-[:M2C]-(n)-[:C2R|:R2C*..10]-(m)-[:M2C]-(c:Molecule{{cgrdb:{target.cgrdb}}})
+WHERE id(n)<>id(m)
+WITH path LIMIT 1
+RETURN 1 as found'''
+        print(self.cgrdb, target.cgrdb)
+        return bool(self.cypher(q)[0])
+
+    def get_effective_paths(self, target: 'Molecule', limit: int = 1):
+        if not limit:
+            raise ValueError('limit should be positive')
+        q = f'''MATCH (:Molecule{{cgrdb:{self.cgrdb}}})-[]->(start:Complex)
+MATCH (:Molecule{{cgrdb:{target.cgrdb}}})-[]->(end:Complex)
+WITH start,end
+CALL algo.kShortestPaths.stream(start, end, {limit}, null, {{nodeQuery:'MATCH (n) WHERE n:Complex OR n:Reaction RETURN id(n) as id',
+relationshipQuery:'MATCH (n:Complex)-[a:C2R]->(r:Reaction)
+RETURN id(n) as source, id(r) as target, a.energy as weight
+UNION
+MATCH (r:Reaction)<-[:R2C]-(n:Complex)
+RETURN id(r) as source, id(n) as target, 0 as weight',graph:"cypher"}})
+YIELD index, nodeIds, costs
+RETURN nodeIds AS path, costs, reduce(acc = 0.0, cost in costs | acc + cost) AS total_cos'''
+        paths = []
+        cache = {}
+        for nodes, costs, total in self.cypher(q)[0]:
+            nodes = tuple(cache.get(n) or cache.setdefault(n, (Reaction if i % 2 else Complex).get(n))
+                          for i, n in enumerate(nodes))
+            paths.append(weighted_path(nodes, costs, total))
+        return paths
+
     @property
     @db_session
     def structure(self):
@@ -128,24 +162,28 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     Gate object for join Molecules from CGRdb with EquilibriumState`s
     """
     signature = StringProperty(unique_index=True, required=True)  # signature of Complex
-
+    energy = FloatProperty()
     brutto = RelationshipFrom('Brutto', 'B2C', cardinality=One)
     molecules = RelationshipFrom('Molecule', 'M2C', model=Mapping)  # mapping of Molecules in db into Complex
     equilibrium_states = RelationshipFrom('EquilibriumState', 'E2C', model=Mapping)  # mapping of ES into complex
-    reactant = RelationshipTo('Reaction', 'C2R', model=Mapping)
-    product = RelationshipFrom('Reaction', 'R2C', model=Mapping)
+    reactant = RelationshipTo('Reaction', 'C2R', model=M_and_B)
+    product = RelationshipFrom('Reaction', 'R2C', model=M_and_B)
 
     def __init__(self, structure: MoleculeContainer = None, **kwargs):
         if structure is not None:
-            super().__init__(signature=str(structure))
+            se = structure.meta['energy']
+            super().__init__(signature=str(structure), energy=se)
             try:
                 self.save()
             except UniqueProperty:  # already exists
+                if self.energy > se:
+                    self.energy = se
                 self.id = self.nodes.get(signature=str(structure), lazy=True)  # get id of existing node
                 e = EquilibriumState(structure)
                 if not self.equilibrium_states.is_connected(e):  # only new ES need connection from complex.
                     self.equilibrium_states.connect(e, {'mapping': next(structure.get_mapping(self.structure))})
             else:  # new complex. store relations into CGRdb and Brutto
+                #self.energy = se
                 self.brutto.connect(Brutto(structure))
                 # create mapping into molecules
                 for s in structure.split():
@@ -230,7 +268,7 @@ class Disabled:
         paths = []
         cache = {}
         for nodes, costs, total in self.cypher(q)[0]:
-            nodes = tuple(cache.get(n) or cache.setdefault(n, (Reaction if i % 2 else Molecule).get(n))
+            nodes = tuple(cache.get(n) or cache.setdefault(n, (Reaction if i % 2 else Complex).get(n))
                           for i, n in enumerate(nodes))
             paths.append(weighted_path(nodes, costs, total))
         return paths
@@ -238,11 +276,11 @@ class Disabled:
 
 class Reaction(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     signature = StringProperty(unique_index=True, required=True)  # signature of ES2ES CGR
-
+    energy = FloatProperty()
     brutto = RelationshipFrom('Brutto', 'B2R', cardinality=One)
     transition_states = RelationshipFrom('TransitionState', 'T2R', model=Mapping)
-    reactant = RelationshipFrom('Complex', 'C2R', cardinality=One, model=Mapping)
-    product = RelationshipFrom('Complex', 'R2C', cardinality=One, model=Mapping)
+    reactant = RelationshipFrom('Complex', 'C2R', cardinality=One, model=M_and_B)
+    product = RelationshipFrom('Complex', 'R2C', cardinality=One, model=M_and_B)
 
     def __init__(self, structure: ReactionContainer = None, **kwargs):
         """
@@ -256,14 +294,22 @@ class Reaction(Mixin, StructuredNode, metaclass=ExtNodeMeta):
             te = t.meta['energy']
 
             cgr = r ^ p
-            super().__init__(signature=str(cgr))
+            super().__init__(signature=str(cgr), energy=te)
             try:
                 self.save()
             except UniqueProperty:  # reaction already exists
                 self.id = self.nodes.get(signature=str(cgr), lazy=True)  # get id of existing node
                 ts = TransitionState(t)
+                if self.energy > te:
+                    self.energy = te
+                rc = Complex(r)
+                pc = Complex(p)
+                if self.reactant.relationship(rc).energy > te - rc.energy:
+                    self.reactant.relationship(rc).energy = te - rc.energy
+                if self.product.relationship(pc).energy > te - pc.energy:
+                    self.product.relationship(pc).energy = te - pc.energy
                 if not self.transition_states.is_connected(ts):  # skip already connected TS
-                    rc = Complex(r)
+
                     t2c = next(r.get_mapping(rc.structure))  # mapping of ts to complex
                     c2r = self.reactant.relationship(rc).mapping  # mapping of Complex to Reaction
                     self.transition_states.connect(ts, {'mapping': {k: c2r[str(v)] for k, v in t2c.items()}})
@@ -275,12 +321,13 @@ class Reaction(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                     ts.equilibrium_states.connect(pe, {'energy': te - pe.energy})
             else:  # new reaction
                 # store relation to Brutto
+                #self.energy = te
                 self.brutto.connect(Brutto(t))
                 # connect reactant and product complexes. todo: possible optimization of mapping
                 rc = Complex(r)
                 pc = Complex(p)
-                self.reactant.connect(rc, {'mapping': next(rc.structure.get_mapping(r))})
-                self.product.connect(pc, {'mapping': next(pc.structure.get_mapping(p))})
+                self.reactant.connect(rc, {'mapping': next(rc.structure.get_mapping(r)), 'energy': te-rc.energy})
+                self.product.connect(pc, {'mapping': next(pc.structure.get_mapping(p)), 'energy': te-pc.energy})
 
                 # connect TS to R
                 ts = TransitionState(t)
@@ -332,4 +379,4 @@ class TransitionState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
             super().__init__(**kwargs)
 
 
-__all__ = ['Molecule', 'Reaction', 'EquilibriumState', 'TransitionState', 'Barrier', 'Mapping']
+__all__ = ['Molecule', 'Reaction', 'EquilibriumState', 'TransitionState', 'Barrier', 'Mapping', 'Complex', 'Brutto']

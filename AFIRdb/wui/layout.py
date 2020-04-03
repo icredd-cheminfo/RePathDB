@@ -48,7 +48,7 @@ def get_layout(app):
                                             {'name': 'Product SMILES', 'id': 'product_structure'}],
                        row_selectable='single',
                        style_table={'maxHeight': '300px', 'overflowY': 'scroll'},
-                       #hidden_columns=['reactant', 'product'],
+                       hidden_columns=['reactant', 'product'],
                        style_cell_conditional=[{
                            'if': {'column_id': 'reactant_structure'},
                            'backgroundColor': reactant_color
@@ -58,10 +58,11 @@ def get_layout(app):
                                'backgroundColor': product_color
                            }
                        ]),
-             Div([Div([Img(src='', id='reagent_img', width="100%", height="100%",
-                           style={'backgroundColor': reactant_color})]),
-                  Div([Img(src='', id='product_img', width="100%", height="100%",
-                           style={'backgroundColor': product_color})])], className='row-md-6')], className='col-md-6')
+             Div([Img(src='', id='reagent_img', width="50%", height="100%",
+                           style={'backgroundColor': reactant_color, 'maxHeight': '200px'}),
+                  Img(src='', id='product_img', width="50%", height="100%",
+                           style={'backgroundColor': product_color, 'maxHeight': '200px'})], className='row'),
+                  ], className='col-md-6')
     ], className='row col-md-12')
 
     row_2 = Div([Div([Graph(id='paths-graph')], className='col-md-8'),

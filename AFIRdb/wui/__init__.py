@@ -28,7 +28,7 @@ from os import getenv
 from pony.orm import db_session
 from .layout import get_layout, reactant_color, product_color, reaction_color, molecule_color
 from .plugins import external_scripts, external_stylesheets
-from ..graph import Molecule, Reaction
+from ..graph import Molecule, Reaction, Complex
 from plotly.graph_objects import Figure, Layout, Scatter
 
 
@@ -95,18 +95,23 @@ def graph(row_id, table):
     with db_session:
         s1 = svg2html(m1.depict())
         s2 = svg2html(m2.depict())
-
-    paths = m1.get_effective_paths(m2, 5)
-    longest = max(len(x) for x, *_ in paths) - 1
-    nodes = {m1.id: (0, 0, reactant_color, True), m2.id: (longest * 5, 0, product_color, True)}
+    max_path = 1
+    max_path_graph = max_path +1 # mols were not included
+    paths = m1.get_effective_paths(m2, max_path)
+    longest = max(len(path.nodes) for path in paths) - 1
+    nodes = {m1.id: (0, 0, reactant_color, "MOL"), m2.id: (longest * (max_path_graph+1), 0, product_color, "MOL")}
     edges = []
-    for r, (mol_rxn, costs, total) in enumerate(paths):
-        for n, (x, c) in enumerate(zip(mol_rxn[1:-1], costs), start=1):
+    zero_en = paths[0].nodes[0].energy
+    for r, path in enumerate(paths):
+        #nodes[path.nodes[0].id] = (1 * max_path_graph, 0,  molecule_color, True)
+        for n, (x, c) in enumerate(zip(path.nodes, [0]+path.cost), start=1):
             if x.id not in nodes:
-                nodes[x.id] = (n * 5, r * 3, reaction_color if n % 2 else molecule_color, not bool(n % 2))
+                nodes[x.id] = (n * max_path_graph, (x.energy - zero_en)*627.51 if n % 2 else (x.energy - zero_en + c)*627.51, molecule_color if n % 2 else reaction_color, "COMP" if n % 2 else "REAC")
 
-        for n in mol_rxn:
+        edges.append(nodes[m1.id][:2])
+        for n in path.nodes:
             edges.append(nodes[n.id][:2])
+        edges.append(nodes[m2.id][:2])
         edges.append((None, None))
 
     edge_trace = Scatter(
@@ -131,7 +136,7 @@ def graph(row_id, table):
                         hovermode='closest',
                         margin=dict(b=20, l=5, r=5, t=40),
                         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=True))
                     )
     return s1, s2, figure
 
@@ -143,10 +148,13 @@ def draw(click_data):
     if "customdata" not in click_data['points'][0]:
         return {'atoms': [], 'bonds': []}
 
-    _id, is_molecule = click_data['points'][0]['customdata']
+    _id, identifier = click_data['points'][0]['customdata']
     with db_session:
-        if is_molecule:
-            node = Molecule.get(_id)
+        if identifier == "MOL" or identifier == "COMP":
+            if identifier == "MOL":
+                node = Molecule.get(_id)
+            if identifier == "COMP":
+                node = Complex.get(_id)
             eq = node.equilibrium_states.order_by('energy').first()
             mp = node.equilibrium_states.relationship(eq).mapping
             xyz = {mp[k]: v for k, v in eq.xyz.items()}
@@ -161,7 +169,7 @@ def draw(click_data):
             ts = node.transition_states.order_by('energy').first()
             mp = node.transition_states.relationship(ts).mapping
             xyz = {mp[k]: v for k, v in ts.xyz.items()}
-            s = node.cgr
+            s = node.structure
             order_map = {n: i for i, n in enumerate(s)}
             bonds = []
             tmp = {'atoms': [{'elem': a.atomic_symbol, 'x': xyz[n][0], 'y': xyz[n][1], 'z': xyz[n][2]}
