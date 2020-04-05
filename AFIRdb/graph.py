@@ -271,13 +271,9 @@ class Reaction(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 self.id = self.nodes.get(signature=str(cgr), lazy=True)  # get id of existing node
                 ts = TransitionState(t)
                 if not self.transition_states.is_connected(ts):  # skip already connected TS
-                    rc = Complex(r)  # load existing complex with new or existing ES
-                    t2c = next(r.get_mapping(rc.structure))  # mapping of ts to complex
-                    c2r = self.reactant.relationship(rc).mapping  # mapping of Complex to Reaction
-                    self.transition_states.connect(ts, {'mapping_json': {k: c2r[v] for k, v in t2c.items()}})
-
+                    self.transition_states.connect(ts, {'mapping_json': next(cgr.get_mapping(self.structure))})
                     # connect TS to ES`s
-                    re = rc.__es__
+                    re = Complex(r).__es__
                     pe = Complex(p).__es__
                     ts.equilibrium_states.connect(re, {'energy': te - re.energy})
                     ts.equilibrium_states.connect(pe, {'energy': te - pe.energy})
