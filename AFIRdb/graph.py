@@ -55,7 +55,11 @@ class Barrier(StructuredRel):
 
 
 class Mapping(StructuredRel):
-    mapping = JSONProperty()
+    mapping_json = JSONProperty()
+
+    @property
+    def mapping(self):
+        return {int(k): v for k, v in self.mapping_json.items()}
 
 class M_and_B(Mapping,Barrier):
     pass
@@ -181,17 +185,17 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 self.id = self.nodes.get(signature=str(structure), lazy=True)  # get id of existing node
                 e = EquilibriumState(structure)
                 if not self.equilibrium_states.is_connected(e):  # only new ES need connection from complex.
-                    self.equilibrium_states.connect(e, {'mapping': next(structure.get_mapping(self.structure))})
+                    self.equilibrium_states.connect(e, {'mapping_json': next(structure.get_mapping(self.structure))})
             else:  # new complex. store relations into CGRdb and Brutto
                 #self.energy = se
                 self.brutto.connect(Brutto(structure))
                 # create mapping into molecules
                 for s in structure.split():
                     m = Molecule(s)
-                    self.molecules.connect(m, {'mapping': next(m.structure.get_mapping(s))})
+                    self.molecules.connect(m, {'mapping_json': next(m.structure.get_mapping(s))})
                 # store ES as-is
                 e = EquilibriumState(structure)
-                self.equilibrium_states.connect(e, {'mapping': {n: n for n in structure}})
+                self.equilibrium_states.connect(e, {'mapping_json': {n: n for n in structure}})
             self.__es__ = e
         else:
             super().__init__(**kwargs)
@@ -203,7 +207,7 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
         for m in set(self.molecules.all()):
             s = m.structure
             for r in self.molecules.all_relationships(m):
-                structure.append(s.remap({int(k): v for k, v in r.mapping.items()}, copy=True))
+                structure.append(s.remap(r.mapping, copy=True))
         return reduce(or_, structure)
 
     def depict(self):
@@ -221,7 +225,7 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
 
 
 class EquilibriumState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
-    xyz = JSONProperty()
+    xyz_json = JSONProperty()
     energy = FloatProperty()
 
     complex = RelationshipTo('Complex', 'E2C', cardinality=One, model=Mapping)
@@ -232,10 +236,14 @@ class EquilibriumState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
             xyz = structure._conformers[0]
             energy = structure.meta['energy']
             # todo: check duplicates. load existing
-            super().__init__(xyz=xyz, energy=energy)
+            super().__init__(xyz_json=xyz, energy=energy)
             self.save()
         else:
             super().__init__(**kwargs)
+
+    @property
+    def xyz(self):
+        return {int(k): tuple(v) for k, v in self.xyz_json.items()}
 
 
 class Disabled:
@@ -309,13 +317,9 @@ class Reaction(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 if self.product.relationship(pc).energy > te - pc.energy:
                     self.product.relationship(pc).energy = te - pc.energy
                 if not self.transition_states.is_connected(ts):  # skip already connected TS
-
-                    t2c = next(r.get_mapping(rc.structure))  # mapping of ts to complex
-                    c2r = self.reactant.relationship(rc).mapping  # mapping of Complex to Reaction
-                    self.transition_states.connect(ts, {'mapping': {k: c2r[str(v)] for k, v in t2c.items()}})
-
+                    self.transition_states.connect(ts, {'mapping_json': next(cgr.get_mapping(self.structure))})
                     # connect TS to ES`s
-                    re = rc.__es__
+                    re = Complex(r).__es__
                     pe = Complex(p).__es__
                     ts.equilibrium_states.connect(re, {'energy': te - re.energy})
                     ts.equilibrium_states.connect(pe, {'energy': te - pe.energy})
@@ -326,12 +330,12 @@ class Reaction(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 # connect reactant and product complexes. todo: possible optimization of mapping
                 rc = Complex(r)
                 pc = Complex(p)
-                self.reactant.connect(rc, {'mapping': next(rc.structure.get_mapping(r)), 'energy': te-rc.energy})
-                self.product.connect(pc, {'mapping': next(pc.structure.get_mapping(p)), 'energy': te-pc.energy})
+                self.reactant.connect(rc, {'mapping_json': next(rc.structure.get_mapping(r)), 'energy': te-rc.energy})
+                self.product.connect(pc, {'mapping_json': next(pc.structure.get_mapping(p)), 'energy': te-pc.energy})
 
                 # connect TS to R
                 ts = TransitionState(t)
-                self.transition_states.connect(ts, {'mapping': {n: n for n in t}})
+                self.transition_states.connect(ts, {'mapping_json': {n: n for n in t}})
                 # connect TS to ES`s
                 re = rc.__es__
                 pe = pc.__es__
@@ -362,7 +366,7 @@ class Reaction(Mixin, StructuredNode, metaclass=ExtNodeMeta):
 
 
 class TransitionState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
-    xyz = JSONProperty()
+    xyz_json = JSONProperty()
     energy = FloatProperty()
 
     reaction = RelationshipTo('Reaction', 'T2R', cardinality=One, model=Mapping)
@@ -373,10 +377,13 @@ class TransitionState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
             xyz = structure._conformers[0]
             energy = structure.meta['energy']
             # todo: check duplicates. load existing
-            super().__init__(xyz=xyz, energy=energy)
+            super().__init__(xyz_json=xyz, energy=energy)
             self.save()
         else:
             super().__init__(**kwargs)
 
+    @property
+    def xyz(self):
+        return {int(k): tuple(v) for k, v in self.xyz_json.items()}
 
 __all__ = ['Molecule', 'Reaction', 'EquilibriumState', 'TransitionState', 'Barrier', 'Mapping', 'Complex', 'Brutto']

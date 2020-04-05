@@ -46,7 +46,7 @@ COPY README.md tmp/README.md
 COPY mol3d_dash-0.0.1-py3-none-any.whl tmp/mol3d_dash-0.0.1-py3-none-any.whl
 RUN pip3 install /tmp/mol3d_dash-0.0.1-py3-none-any.whl && rm tmp/mol3d_dash-0.0.1-py3-none-any.whl
 RUN cd tmp && pip3 install . && rm -rf AFIRdb setup.py README.md && cd ..
-
+RUN service neo4j start && sleep 10 && neomodel_install_labels AFIRdb AFIRdb.graph --db bolt://neo4j:afirdb@localhost:7687 && service neo4j stop
 # setup MarvinJS
 COPY mjs /usr/local/lib/python3.6/dist-packages/AFIRdb/wui/assets/mjs
 COPY boot.sh /opt/boot
