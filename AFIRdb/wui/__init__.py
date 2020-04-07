@@ -45,7 +45,7 @@ dash = Dash(__name__, external_stylesheets=external_stylesheets, external_script
 dash.title = 'AFIRdb'
 dash.layout = get_layout(dash)
 dash.server.secret_key = getenv('SECRET_KEY', 'development')
-
+paths = []
 
 @dash.callback([Output('editor', 'upload'), Output('table', 'data')], [Input('editor', 'download')])
 def search(mrv):
@@ -83,11 +83,13 @@ def search(mrv):
     return mrv, table
 
 
-@dash.callback([Output('reagent_img', 'src'), Output('product_img', 'src'), Output('paths-graph', 'figure')],
+@dash.callback([Output('reagent_img', 'src'), Output('product_img', 'src'), Output('table2', 'data')],
                [Input('table', 'selected_rows')], [State('table', 'data')])
 def graph(row_id, table):
     if not row_id:
-        return '', '', Figure()
+        table = [{'reactant': 'No results', 'product': 'No results', 'reactant_structure': 'No results',
+                  'product_structure': 'No results'}]
+        return '', '', table
 
     row = table[row_id[0]]
     m1 = Molecule.get(row['reactant'])
@@ -96,22 +98,47 @@ def graph(row_id, table):
         s1 = svg2html(m1.depict())
         s2 = svg2html(m2.depict())
     max_path = 1
-    max_path_graph = max_path +1 # mols were not included
+    #max_path_graph = max_path +1 # mols were not included
     paths = m1.get_effective_paths(m2, max_path)
-    longest = max(len(path.nodes) for path in paths) - 1
-    nodes = {m1.id: (0, 0, reactant_color, "MOL"), m2.id: (longest * (max_path_graph+1), 0, product_color, "MOL")}
-    edges = []
+    pairs = []
+    for r, path in enumerate(paths):
+        #print(path.nodes[0])
+        #a = Complex.nodes.get(path.nodes[0])
+        #b = Complex.nodes.get(path.nodes[-1])
+        pairs.append({'reactant': path.nodes[0].id, 'product': path.nodes[-1].id,
+                                        'reactant_structure': path.nodes[0].signature, 'product_structure': path.nodes[-1].signature})
+
+    return s1, s2, pairs
+
+@dash.callback([Output('reagent_img2', 'src'), Output('product_img2', 'src'), Output('paths-graph', 'figure')],
+               [Input('table2', 'selected_rows')], [State('table2', 'data')])
+def graph(row_id, table):
+    if not row_id:
+        return '', '', Figure()
+
+    row = table[row_id[0]]
+    m1 = Complex.get(row['reactant'])
+    m2 = Complex.get(row['product'])
+    with db_session:
+        s1 = svg2html(m1.depict())
+        s2 = svg2html(m2.depict())
+    max_path = 1
+    #max_path_graph = max_path +1 # mols were not included
+    paths = m1.get_effective_paths(m2, max_path)
     zero_en = paths[0].nodes[0].energy
+    longest = max(len(x.nodes) for x in paths)
+    nodes = {m1.id: (0, 0, reactant_color, "MOL"), m2.id: (longest * 5, (paths[0].nodes[-1].energy-zero_en)*627.51, product_color, "MOL")}
+    edges = []
     for r, path in enumerate(paths):
         #nodes[path.nodes[0].id] = (1 * max_path_graph, 0,  molecule_color, True)
         for n, (x, c) in enumerate(zip(path.nodes, [0]+path.cost), start=1):
             if x.id not in nodes:
-                nodes[x.id] = (n * max_path_graph, (x.energy - zero_en)*627.51 if n % 2 else (x.energy - zero_en + c)*627.51, molecule_color if n % 2 else reaction_color, "COMP" if n % 2 else "REAC")
+                nodes[x.id] = (n * 5, (x.energy - zero_en)*627.51 if n % 2 else (x.energy - zero_en + c)*627.51, molecule_color if n % 2 else reaction_color, "COMP" if n % 2 else "REAC")
 
-        edges.append(nodes[m1.id][:2])
+        #edges.append(nodes[m1.id][:2])
         for n in path.nodes:
             edges.append(nodes[n.id][:2])
-        edges.append(nodes[m2.id][:2])
+        #edges.append(nodes[m2.id][:2])
         edges.append((None, None))
 
     edge_trace = Scatter(
