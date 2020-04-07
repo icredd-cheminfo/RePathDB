@@ -22,6 +22,7 @@ from dash_html_components import Div, H1, Hr, Img
 from dash_marvinjs import DashMarvinJS
 from dash_table import DataTable
 from mol3d_dash import Mol3dDash
+from dash_network import Network
 
 reactant_color = '#93e3ed'
 product_color = '#f77ea5'
@@ -110,5 +111,13 @@ def get_layout(app):
                  Div([Mol3dDash(id='structure')], className='col-md-4')],  style={'min-height': '400px'},
                 className='row col-12')
 
-    layout = Div([H1("AFIR database visualisation", style={'textAlign': 'center'}), row_1, Hr(), row_2, Hr(),row_3])
+    row_4 = Div([Network(
+                    id='net',
+                    data={'nodes': [],
+                          'links': []
+                    }
+    )])
+
+    layout = Div([H1("AFIR database visualisation", style={'textAlign': 'center'}),
+                  row_1, Hr(), row_2, Hr(), row_3, Hr(), row_4])
     return layout
