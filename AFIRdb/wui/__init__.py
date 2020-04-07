@@ -127,13 +127,13 @@ def graph(row_id, table):
     paths = m1.get_effective_paths(m2, max_path)
     zero_en = paths[0].nodes[0].energy
     longest = max(len(x.nodes) for x in paths)
-    nodes = {m1.id: (0, 0, reactant_color, "MOL"), m2.id: (longest * 5, (paths[0].nodes[-1].energy-zero_en)*627.51, product_color, "MOL")}
+    nodes = {m1.id: (0, 0, reactant_color, "Complex"), m2.id: (longest * 5, (paths[0].nodes[-1].energy-zero_en)*627.51, product_color, "Complex")}
     edges = []
     for r, path in enumerate(paths):
         #nodes[path.nodes[0].id] = (1 * max_path_graph, 0,  molecule_color, True)
         for n, (x, c) in enumerate(zip(path.nodes, [0]+path.cost), start=1):
             if x.id not in nodes:
-                nodes[x.id] = (n * 5, (x.energy - zero_en)*627.51 if n % 2 else (x.energy - zero_en + c)*627.51, molecule_color if n % 2 else reaction_color, "COMP" if n % 2 else "REAC")
+                nodes[x.id] = (n * 5, (x.energy - zero_en)*627.51 if n % 2 else (x.energy - zero_en + c)*627.51, molecule_color if n % 2 else reaction_color, "Complex" if n % 2 else "Reaction")
 
         #edges.append(nodes[m1.id][:2])
         for n in path.nodes:
@@ -150,6 +150,7 @@ def graph(row_id, table):
     node_trace = Scatter(
         x=[x[0] for x in nodes.values()], y=[x[1] for x in nodes.values()],
         customdata=[(x, y[3]) for x, y in nodes.items()],
+        text=[x[3] for x in nodes.values()],
         mode='markers',
         hoverinfo='text',
         marker=dict(
@@ -177,10 +178,11 @@ def draw(click_data):
 
     _id, identifier = click_data['points'][0]['customdata']
     with db_session:
-        if identifier == "MOL" or identifier == "COMP":
+        if identifier == "MOL" or identifier == "Complex":
             if identifier == "MOL":
-                node = Molecule.get(_id)
-            if identifier == "COMP":
+                #node = Molecule.get(_id)
+                pass
+            if identifier == "Complex":
                 node = Complex.get(_id)
             eq = node.equilibrium_states.order_by('energy').first()
             mp = node.equilibrium_states.relationship(eq).mapping
