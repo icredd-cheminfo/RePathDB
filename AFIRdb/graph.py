@@ -200,6 +200,34 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
         else:
             super().__init__(**kwargs)
 
+    def get_effective_paths(self, target: 'Complex', limit: int = 1):
+        if not limit:
+            raise ValueError('limit should be positive')
+        q = f'''MATCH (s:Complex) WHERE id(s)={self.id} 
+                MATCH (f:Complex) WHERE id(f)={target.id}
+                WITH s,f
+                CALL algo.kShortestPaths.stream(s, f, 1, null,
+                  {{
+                     nodeQuery:'MATCH (n) WHERE n:Complex OR n:Reaction RETURN id(n) as id',
+                     relationshipQuery:'MATCH (n:Complex)-[a:C2R]->(r:Reaction)
+                                        RETURN id(n) as source, id(r) as target, a.energy as weight
+                                        UNION
+                                        MATCH (r:Reaction)<-[a:R2C]-(n:Complex)
+                                        RETURN id(r) as source, id(n) as target, 0 as weight',
+                     direction:'OUT',
+                     graph:'cypher'
+                   }}
+                 )
+                YIELD index, nodeIds, costs
+                RETURN nodeIds AS path, costs, reduce(acc = 0.0, cost in costs | acc + cost) AS total_cost'''
+        paths = []
+        cache = {}
+        for nodes, costs, total in self.cypher(q)[0]:
+            nodes = tuple(cache.get(n) or cache.setdefault(n, (Reaction if i % 2 else Complex).get(n))
+                          for i, n in enumerate(nodes))
+            paths.append(weighted_path(nodes, costs, total))
+        return paths
+
     @property
     @db_session
     def structure(self):
