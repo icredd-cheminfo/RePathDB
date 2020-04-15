@@ -30,6 +30,7 @@ from .layout import get_layout, reactant_color, product_color, reaction_color, m
 from .plugins import external_scripts, external_stylesheets
 from ..graph import Molecule, Reaction, Complex
 from plotly.graph_objects import Figure, Layout, Scatter
+from .utilities import get_figure, get_3d
 
 
 MoleculeContainer._render_config['mapping'] = False
@@ -110,15 +111,23 @@ def graph(row_id, table):
 
     return s1, s2, pairs
 
-@dash.callback([Output('reagent_img2', 'src'), Output('product_img2', 'src'), Output('paths-graph', 'figure')],
-               [Input('table2', 'selected_rows')], [State('table2', 'data')])
+@dash.callback([Output('reagent_img2', 'src'), Output('product_img2', 'src'), Output('paths-graph', 'figure'),Output('net', 'data')],
+               [Input('table2', 'selected_rows')], [State('table2', 'data'), State('paths-graph', 'figure')])
 def graph(row_id, table):
     if not row_id:
-        return '', '', Figure()
+        return '', '', Figure(), {'nodes': [],'links': []}
 
     row = table[row_id[0]]
     m1 = Complex.get(row['reactant'])
     m2 = Complex.get(row['product'])
+    b1 = m1.brutto.all()[0]
+    b2 = m2.brutto.all()[0]
+    if b1 == b2:
+        graph_nodes = [{'id': x.id, 'color':molecule_color} for x in b1.complexes.all()]
+        graph_links = [{'source': r.reactant.all()[0].id, 'target':r.product.all()[0].id} for r in b1.reactions.all()]
+        net = {'nodes': graph_nodes, 'links': graph_links}
+    else:
+        pass
     with db_session:
         s1 = svg2html(m1.depict())
         s2 = svg2html(m2.depict())
@@ -134,39 +143,15 @@ def graph(row_id, table):
         for n, (x, c) in enumerate(zip(path.nodes, [0]+path.cost), start=1):
             if x.id not in nodes:
                 nodes[x.id] = (n * 5, (x.energy - zero_en)*627.51 if n % 2 else (x.energy - zero_en + c)*627.51, molecule_color if n % 2 else reaction_color, "Complex" if n % 2 else "Reaction")
-
         #edges.append(nodes[m1.id][:2])
         for n in path.nodes:
             edges.append(nodes[n.id][:2])
         #edges.append(nodes[m2.id][:2])
         edges.append((None, None))
 
-    edge_trace = Scatter(
-        x=[x for x, _ in edges], y=[x for _, x in edges],
-        line=dict(width=0.5, color='#888'),
-        hoverinfo='none',
-        mode='lines')
+    figure = get_figure(edges, nodes)
 
-    node_trace = Scatter(
-        x=[x[0] for x in nodes.values()], y=[x[1] for x in nodes.values()],
-        customdata=[(x, y[3]) for x, y in nodes.items()],
-        text=[x[3] for x in nodes.values()],
-        mode='markers',
-        hoverinfo='text',
-        marker=dict(
-            showscale=False,
-            color=[x[2] for x in nodes.values()],
-            size=15))
-
-    figure = Figure(data=[edge_trace, node_trace],
-                    layout=Layout(
-                        showlegend=False,
-                        hovermode='closest',
-                        margin=dict(b=20, l=5, r=5, t=40),
-                        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=True))
-                    )
-    return s1, s2, figure
+    return s1, s2, figure, net
 
 
 @dash.callback(Output('structure', 'value'), [Input('paths-graph', 'clickData')])
@@ -200,34 +185,11 @@ def draw(click_data):
             xyz = {mp[k]: v for k, v in ts.xyz.items()}
             s = node.structure
             order_map = {n: i for i, n in enumerate(s)}
-            bonds = []
-            tmp = {'atoms': [{'elem': a.atomic_symbol, 'x': xyz[n][0], 'y': xyz[n][1], 'z': xyz[n][2]}
-                             for n, a in s.atoms()],
-                   'bonds': bonds}
+            tmp = get_3d(s, order_map, xyz)
 
-            for n, m, b in s.bonds():
-                if b.order is None:
-                    bonds.append({'atom1': order_map[n], 'atom2': order_map[m],
-                                  'maxorder': b.p_order,
-                                  'from': 0})
-                elif b.p_order is None:
-                    bonds.append({'atom1': order_map[n], 'atom2': order_map[m],
-                                  'maxorder': b.order,
-                                  'to': 0})
-                elif b.p_order == b.order:
-                    bonds.append({'atom1': order_map[n], 'atom2': order_map[m],
-                                  'maxorder': b.order,
-                                  })
-                else:
-                    if b.order > b.p_order:
-                        bonds.append({'atom1': order_map[n], 'atom2': order_map[m],
-                                      'maxorder': b.order,
-                                      'to': b.p_order})
-                    else:
-                        bonds.append({'atom1': order_map[n], 'atom2': order_map[m],
-                                      'maxorder': b.p_order,
-                                      'from': b.order})
     return tmp
+
+
 
 
 __all__ = ['dash']
