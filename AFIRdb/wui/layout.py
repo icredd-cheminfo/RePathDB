@@ -116,7 +116,7 @@ def get_layout(app):
                     data={'nodes': [],
                           'links': []
                     }
-    )])
+    )], className='col-12')
 
     layout = Div([H1("AFIR database visualisation", style={'textAlign': 'center'}),
                   row_1, Hr(), row_2, Hr(), row_3, Hr(), row_4])
