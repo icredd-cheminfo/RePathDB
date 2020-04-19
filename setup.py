@@ -34,7 +34,7 @@ setup(
     author='Dr. Timur Gimadiev',
     author_email='timur.gimadiev@gmail.com',
     python_requires='>=3.6.0',
-    install_requires=['CGRdb>=4.0.0,<4.1', 'neomodel>=3.3.2', 'dash', 'dash_marvinjs', 'mol3d_dash'],
+    install_requires=['CGRdb>=4.0.0,<4.1', 'neomodel>=3.3.2', 'dash', 'dash_marvinjs', 'mol3d_dash', 'plotly'],
     long_description=(Path(__file__).parent / 'README.md').open().read(),
     classifiers=['Environment :: Plugins',
                  'Intended Audience :: Science/Research',

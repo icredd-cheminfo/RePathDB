@@ -22,6 +22,7 @@ from CGRdb import Molecule as pMolecule
 from CGRtools import MoleculeContainer, MRVRead, MRVWrite
 from dash import Dash
 from dash.dependencies import Input, Output, State
+from dash import callback_context
 from itertools import product
 from io import StringIO, BytesIO
 from os import getenv
@@ -111,63 +112,107 @@ def graph(row_id, table):
 
     return s1, s2, pairs
 
-@dash.callback([Output('reagent_img2', 'src'), Output('product_img2', 'src'), Output('paths-graph', 'figure'),Output('net', 'data')],
-               [Input('table2', 'selected_rows')], [State('table2', 'data'), State('paths-graph', 'figure')])
-def graph(row_id, table):
-    if not row_id:
-        return '', '', Figure(), {'nodes': [],'links': []}
 
-    row = table[row_id[0]]
-    m1 = Complex.get(row['reactant'])
-    m2 = Complex.get(row['product'])
-    b1 = m1.brutto.all()[0]
-    b2 = m2.brutto.all()[0]
-    if b1 == b2:
-        graph_nodes = [{'id': x.id, 'color':molecule_color} for x in b1.complexes.all()]
-        graph_links = [{'source': r.reactant.all()[0].id, 'target':r.product.all()[0].id} for r in b1.reactions.all()]
-        net = {'nodes': graph_nodes, 'links': graph_links}
-    else:
-        pass
-    with db_session:
-        s1 = svg2html(m1.depict())
-        s2 = svg2html(m2.depict())
-    max_path = 1
-    #max_path_graph = max_path +1 # mols were not included
-    paths = m1.get_effective_paths(m2, max_path)
-    zero_en = paths[0].nodes[0].energy
-    longest = max(len(x.nodes) for x in paths)
-    nodes = {m1.id: (0, 0, reactant_color, "Complex"), m2.id: (longest * 5, (paths[0].nodes[-1].energy-zero_en)*627.51, product_color, "Complex")}
-    edges = []
-    for r, path in enumerate(paths):
-        #nodes[path.nodes[0].id] = (1 * max_path_graph, 0,  molecule_color, True)
-        for n, (x, c) in enumerate(zip(path.nodes, [0]+path.cost), start=1):
-            if x.id not in nodes:
-                nodes[x.id] = (n * 5, (x.energy - zero_en)*627.51 if n % 2 else (x.energy - zero_en + c)*627.51, molecule_color if n % 2 else reaction_color, "Complex" if n % 2 else "Reaction")
-        #edges.append(nodes[m1.id][:2])
-        for n in path.nodes:
-            edges.append(nodes[n.id][:2])
-        #edges.append(nodes[m2.id][:2])
-        edges.append((None, None))
+@dash.callback([Output('reagent_img2', 'src'), Output('product_img2', 'src'), Output('paths-graph', 'figure'),
+                Output('net', 'data'), Output('structure', 'value')],
+               [Input('table2', 'selected_rows'), Input('paths-graph', 'clickData'), Input('net', 'selectedId')],
+               [State('table2', 'data'), State('paths-graph', 'figure'), State('reagent_img2', 'src'),
+                State('product_img2', 'src'), State('net', 'data'), State('structure', 'value')])
+def graph(row_id2_inp, path_graph_click, netid, table2, path_graph_data, reagent_img2, product_img2, net_data, struct_d3):
+    ctx = callback_context
+    element_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    print(ctx.triggered[0])
+    #print(row_id2_inp, path_graph_click, table2, path_graph_data, reagent_img2, product_img2, net_data, struct_d3)
+    if element_id == 'table2' and not row_id2_inp:
+        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3
 
-    figure = get_figure(edges, nodes)
+    elif element_id == 'table2' and row_id2_inp:
+        row = table2[row_id2_inp[0]]
+        m1 = Complex.get(row['reactant'])
+        m2 = Complex.get(row['product'])
+        b1 = m1.brutto.all()[0]
+        b2 = m2.brutto.all()[0]
+        if b1 == b2:
+            graph_nodes = [{'id': str(x.id), 'color': "grey"} for x in b1.complexes.all()]
+            graph_links = [{'source': r.reactant.all()[0].id, 'target':r.product.all()[0].id, 'color':"green"} for r in b1.reactions.all()]
+            net_data = {'nodes': graph_nodes, 'links': graph_links}
+        else:
+            pass
+        with db_session:
+            s1 = svg2html(m1.depict())
+            s2 = svg2html(m2.depict())
+            reagent_img2 = s1
+            product_img2 = s2
+        max_path = 1
+        #max_path_graph = max_path +1 # mols were not included
+        paths = m1.get_effective_paths(m2, max_path)
+        zero_en = paths[0].nodes[0].energy
+        longest = max(len(x.nodes) for x in paths)
+        nodes = {m1.id: (0, 0, reactant_color, "Complex "+str(m1.id)), m2.id: (longest * 5, (paths[0].nodes[-1].energy-zero_en)*627.51, product_color, "Complex "+str(m2.id))}
+        edges = []
+        for r, path in enumerate(paths):
+            #nodes[path.nodes[0].id] = (1 * max_path_graph, 0,  molecule_color, True)
+            for n, (x, c) in enumerate(zip(path.nodes, [0]+path.cost), start=1):
+                if x.id not in nodes:
+                    nodes[x.id] = (n * 5, (x.energy - zero_en)*627.51 if n % 2 else (x.energy - zero_en + c)*627.51, molecule_color if n % 2 else reaction_color, "Complex "+str(x.id) if n % 2 else "Reaction")
+            #edges.append(nodes[m1.id][:2])
+            for n in path.nodes:
+                edges.append(nodes[n.id][:2])
+            #edges.append(nodes[m2.id][:2])
+            edges.append((None, None))
+        for i in net_data['nodes']:
+            if int(i['id']) in nodes:
+                i['color'] = nodes[int(i['id'])][2]
 
-    return s1, s2, figure, net
+        path_graph_data = get_figure(edges, nodes)
+
+        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3
+
+    elif element_id == 'paths-graph' and path_graph_click:
+        struct_d3 = draw(path_graph_click)
+        id = path_graph_click['points'][0]['pointIndex']
+        path_graph_data['data'][1]['marker']['color'][0] = reactant_color
+        path_graph_data['data'][1]['marker']['color'][1] = product_color
+        for n, i in enumerate(path_graph_data['data'][1]['marker']['color'][2:], start=2):
+            if not n % 2:
+                path_graph_data['data'][1]['marker']['color'][n] = reaction_color
+            else:
+                path_graph_data['data'][1]['marker']['color'][n] = molecule_color
+        path_graph_data['data'][1]['marker']['color'][id] = "green"
+        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3
+
+    elif element_id == 'net' and netid is not None:
+        #print(net_data)
+        for i in net_data['nodes']:
+            if i['id'] == netid:
+                i['color'] = 'red'
+        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3
+    elif element_id == 'net' and netid is not None:
+        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3
+    print("blanc")
+    reagent_img2 = ""
+    product_img2 = ""
+    path_graph_data = Figure()
+    net_data = {'nodes': [], 'links': []}
+    struct_d3 = {'atoms': [], 'bonds': []}
+    return reagent_img2, product_img2, path_graph_data, net_data, struct_d3
+
+    #return reagent_img2, product_img2, path_graph_data, net_data, struct_d3
 
 
-@dash.callback(Output('structure', 'value'), [Input('paths-graph', 'clickData')])
+#@dash.callback(Output('structure', 'value'), [Input('paths-graph', 'clickData')])
 def draw(click_data):
     if not click_data:
         return {'atoms': [], 'bonds': []}
     if "customdata" not in click_data['points'][0]:
         return {'atoms': [], 'bonds': []}
-
     _id, identifier = click_data['points'][0]['customdata']
     with db_session:
-        if identifier == "MOL" or identifier == "Complex":
+        if identifier == "MOL" or "Complex" in identifier:
             if identifier == "MOL":
                 #node = Molecule.get(_id)
                 pass
-            if identifier == "Complex":
+            if "Complex" in identifier:
                 node = Complex.get(_id)
             eq = node.equilibrium_states.order_by('energy').first()
             mp = node.equilibrium_states.relationship(eq).mapping
