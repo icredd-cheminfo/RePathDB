@@ -69,11 +69,7 @@ def get_layout(app):
                            'width': '47%'
                            }
                        ]),
-             Div([Img(src='', id='reagent_img', width="50%", height="100%",
-                           style={'backgroundColor': reactant_color, 'maxHeight': '200px'}),
-                  Img(src='', id='product_img', width="50%", height="100%",
-                           style={'backgroundColor': product_color, 'maxHeight': '200px'})
-                  ], className='row'),
+
              ], className='col-6'),
 
         Div([DataTable(id='table2', columns=[  # {'name': 'Reactant', 'id': 'reactant', 'color': reactant_color},
@@ -100,12 +96,21 @@ def get_layout(app):
                            'width': '47%'
                            }
                        ]),
-             Div([Img(src='', id='reagent_img2', width="50%", height="100%",
-                      style={'backgroundColor': reactant_color, 'maxHeight': '200px'}),
-                  Img(src='', id='product_img2', width="50%", height="100%",
-                      style={'backgroundColor': product_color, 'maxHeight': '200px'})], className='row'),
+
                   ], className='col-6')
              ], className='row')
+
+    row_2_2 = Div([
+        Div([Img(src='', id='reagent_img', width="50%", height="100%",
+                           style={'backgroundColor': reactant_color, 'maxHeight': '200px'}),
+                  Img(src='', id='product_img', width="50%", height="100%",
+                           style={'backgroundColor': product_color, 'maxHeight': '200px'})
+                  ], className='row'),
+        Div([Img(src='', id='reagent_img2', width="50%", height="100%",
+                      style={'backgroundColor': reactant_color, 'maxHeight': '200px'}),
+                  Img(src='', id='product_img2', width="50%", height="100%",
+                      style={'backgroundColor': product_color, 'maxHeight': '200px'})], className='row')
+    ])
 
     row_3 = Div([Div([Graph(id='paths-graph')], className='col-md-8'),
                  Div([Mol3dDash(id='structure')], className='col-md-4')],  style={'min-height': '400px'},
@@ -119,5 +124,5 @@ def get_layout(app):
     )], className='col-12')
 
     layout = Div([H1("AFIR database visualisation", style={'textAlign': 'center'}),
-                  row_1, Hr(), row_2, Hr(), row_3, Hr(), row_4])
+                  row_1, Hr(), row_2, Hr(),row_2_2,Hr(), row_3, Hr(), row_4])
     return layout
