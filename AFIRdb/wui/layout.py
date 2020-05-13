@@ -17,8 +17,8 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-from dash_core_components import Markdown, Graph
-from dash_html_components import Div, H1, Hr, Img
+from dash_core_components import Markdown, Graph, RadioItems
+from dash_html_components import Div, H1, Hr, Img, Br,H2
 from dash_marvinjs import DashMarvinJS
 from dash_table import DataTable
 from mol3d_dash import Mol3dDash
@@ -30,7 +30,7 @@ molecule_color = 'blue'
 reaction_color = 'red'
 
 readme = '''
-# Readme
+# Instructions
 - Help will be shown here
 '''
 
@@ -47,8 +47,8 @@ def get_layout(app):
     row_2 =Div([
         Div([DataTable(id='table', columns=[#{'name': 'Reactant', 'id': 'reactant', 'color': reactant_color},
                                             #{'name': 'Product', 'id': 'product', 'color': product_color},
-                                            {'name': 'Start molecule SMILES', 'id': 'reactant_structure'},
-                                            {'name': 'Finish molecule SMILES', 'id': 'product_structure'}],
+                                            {'name': 'Reactant molecule SMILES', 'id': 'reactant_structure'},
+                                            {'name': 'Product molecule SMILES', 'id': 'product_structure'}],
                        fixed_rows={'headers': True, 'data': 0},
                        row_selectable='single',
                        style_data={
@@ -74,8 +74,8 @@ def get_layout(app):
 
         Div([DataTable(id='table2', columns=[  # {'name': 'Reactant', 'id': 'reactant', 'color': reactant_color},
                                                  # {'name': 'Product', 'id': 'product', 'color': product_color},
-                                                 {'name': 'Start complex SMILES', 'id': 'reactant_structure'},
-                                                 {'name': 'Finish complex SMILES', 'id': 'product_structure'}],
+                                                 {'name': 'Reactant complex SMILES', 'id': 'reactant_structure'},
+                                                 {'name': 'Product complex SMILES', 'id': 'product_structure'}],
                        fixed_rows={'headers': True, 'data': 0},
                        row_selectable='single',
                        style_data={
@@ -101,28 +101,50 @@ def get_layout(app):
              ], className='row')
 
     row_2_2 = Div([
-        Div([Img(src='', id='reagent_img', width="50%", height="100%",
+        H2("Molecules structure", style={'textAlign': 'center'}),
+        Hr(),
+        Div([
+            Img(src='', id='reagent_img', width="50%", height="100%",
                            style={'backgroundColor': reactant_color, 'maxHeight': '200px'}),
-                  Img(src='', id='product_img', width="50%", height="100%",
+            Img(src='', id='product_img', width="50%", height="100%",
                            style={'backgroundColor': product_color, 'maxHeight': '200px'})
                   ], className='row'),
-        Div([Img(src='', id='reagent_img2', width="50%", height="100%",
+        H2("Complexes structure", style={'textAlign': 'center'}),
+        Hr(),
+        Div([
+            Img(src='', id='reagent_img2', width="50%", height="100%",
                       style={'backgroundColor': reactant_color, 'maxHeight': '200px'}),
-                  Img(src='', id='product_img2', width="50%", height="100%",
+            Img(src='', id='product_img2', width="50%", height="100%",
                       style={'backgroundColor': product_color, 'maxHeight': '200px'})], className='row')
     ])
 
-    row_3 = Div([Div([Graph(id='paths-graph')], className='col-md-8'),
-                 Div([Mol3dDash(id='structure')], className='col-md-4')],  style={'min-height': '400px'},
-                className='row col-12')
-
+    row_3 = Div([RadioItems(id='radio',
+                               options=[
+                                   {'label': 'Best', 'value': '1'},
+                                   {'label': 'Second', 'value': '2'},
+                                   {'label': 'Third', 'value': '3'},
+                                   {'label': 'Fourth', 'value': '4'},
+                                   {'label': 'Fifth', 'value': '5'}
+                               ],
+                               value='1',
+                               labelStyle={'display': 'inline-block', }
+                               ),
+                Br(),
+                Div([Div([Graph(id='paths-graph')], className='col-md-8'),
+                    Div([Mol3dDash(id='structure')], className='col-md-4')],  style={'min-height': '400px'},
+                            className='row col-12')
+            ])
     row_4 = Div([Network(
                     id='net',
+                    width=1000,
+                    height=1000,
                     data={'nodes': [],
                           'links': []
-                    }
-    )], className='col-12')
+                    }),
+                Img(src='', id='net_img', width="30%", height="100%",
+                        style={'maxHeight': '200px'}),
+    ], className='row')
 
     layout = Div([H1("AFIR database visualisation", style={'textAlign': 'center'}),
-                  row_1, Hr(), row_2, Hr(),row_2_2,Hr(), row_3, Hr(), row_4])
+                  row_1, Hr(), row_2, Hr(), row_2_2, Hr(), row_3, Hr(), row_4])
     return layout
