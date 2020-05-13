@@ -1,5 +1,8 @@
 from plotly.graph_objects import Figure, Layout, Scatter
-
+from CGRdb import db_session
+from ..graph import Molecule, Reaction, Complex
+from io import StringIO
+from CGRtools import  MRVWrite
 
 def get_figure(edges, nodes):
     edge_trace = Scatter(
@@ -25,7 +28,10 @@ def get_figure(edges, nodes):
                         hovermode='closest',
                         margin=dict(b=20, l=5, r=5, t=40),
                         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=True))
+                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=True),
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)'
+                    ),
                     )
     return figure
 
@@ -60,3 +66,43 @@ def get_3d(s, order_map, xyz):
                               'from': b.order})
     return tmp
 
+
+def draw(click_data):
+    if not click_data:
+        return {'atoms': [], 'bonds': []}
+    if "customdata" not in click_data['points'][0]:
+        return {'atoms': [], 'bonds': []}
+    _id, identifier = click_data['points'][0]['customdata']
+    with db_session:
+        if identifier == "MOL" or "Complex" in identifier:
+            if identifier == "MOL":
+                #node = Molecule.get(_id)
+                pass
+            if "Complex" in identifier:
+                node = Complex.get(_id)
+            eq = node.equilibrium_states.order_by('energy').first()
+            mp = node.equilibrium_states.relationship(eq).mapping
+            xyz = {mp[k]: v for k, v in eq.xyz.items()}
+            s = node.structure
+            order_map = {n: i for i, n in enumerate(s)}
+            tmp = {'atoms': [{'elem': a.atomic_symbol, 'x': xyz[n][0], 'y': xyz[n][1], 'z': xyz[n][2]}
+                             for n, a in s.atoms()],
+                   'bonds': [{'atom1': order_map[n], 'atom2': order_map[m], 'maxorder': b.order}
+                             for n, m, b in s.bonds()]}
+        else:
+            node = Reaction.get(_id)
+            ts = node.transition_states.order_by('energy').first()
+            mp = node.transition_states.relationship(ts).mapping
+            xyz = {mp[k]: v for k, v in ts.xyz.items()}
+            s = node.structure
+            order_map = {n: i for i, n in enumerate(s)}
+            tmp = get_3d(s, order_map, xyz)
+
+    return tmp
+
+
+def get_mrv(structure):
+    with StringIO() as f:
+        with MRVWrite(f) as o:
+            o.write(structure)
+            return f.getvalue()

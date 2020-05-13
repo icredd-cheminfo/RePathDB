@@ -117,7 +117,7 @@ class Molecule(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     def has_path(self, target: 'Molecule'):
         if target.id == self.id:
             return False
-        q = f'''MATCH path = (a:Molecule{{cgrdb:{self.cgrdb}}})-[:M2C]-(n)-[:C2R|:R2C*..10]-(m)-[:M2C]-(c:Molecule{{cgrdb:{target.cgrdb}}})
+        q = f'''MATCH path = (a:Molecule{{cgrdb:{self.cgrdb}}})-[:M2C]-(n)-[:C2R|:R2C*..6]-(m)-[:M2C]-(c:Molecule{{cgrdb:{target.cgrdb}}})
 WHERE id(n)<>id(m)
 WITH path LIMIT 1
 RETURN 1 as found'''
@@ -206,7 +206,7 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
         q = f'''MATCH (s:Complex) WHERE id(s)={self.id} 
                 MATCH (f:Complex) WHERE id(f)={target.id}
                 WITH s,f
-                CALL algo.kShortestPaths.stream(s, f, 1, null,
+                CALL algo.kShortestPaths.stream(s, f, {limit}, null,
                   {{
                      nodeQuery:'MATCH (n) WHERE n:Complex OR n:Reaction RETURN id(n) as id',
                      relationshipQuery:'MATCH (n:Complex)-[a:C2R]->(r:Reaction)
@@ -255,7 +255,7 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
 class EquilibriumState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     xyz_json = JSONProperty()
     energy = FloatProperty()
-
+    signature = StringProperty(unique_index=True, required=True)  # signature of EQ
     complex = RelationshipTo('Complex', 'E2C', cardinality=One, model=Mapping)
     transition_states = RelationshipTo('TransitionState', 'E2T', model=Barrier)
 
@@ -263,9 +263,15 @@ class EquilibriumState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
         if structure is not None:
             xyz = structure._conformers[0]
             energy = structure.meta['energy']
-            # todo: check duplicates. load existing
-            super().__init__(xyz_json=xyz, energy=energy)
-            self.save()
+            signature = [None] * len(structure)
+            for n, m in structure.atoms_order.items():
+                signature[m-1] = [round(x, 4) for x in xyz[n]]
+            signature = str(signature)
+            super().__init__(xyz_json=xyz, energy=energy, signature=signature)
+            try:
+                self.save()
+            except UniqueProperty:
+                self.id = self.nodes.get(signature=signature, lazy=True)  # get id of existing node
         else:
             super().__init__(**kwargs)
 
@@ -396,7 +402,7 @@ class Reaction(Mixin, StructuredNode, metaclass=ExtNodeMeta):
 class TransitionState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     xyz_json = JSONProperty()
     energy = FloatProperty()
-
+    signature = StringProperty(unique_index=True, required=True)  # signature of TS
     reaction = RelationshipTo('Reaction', 'T2R', cardinality=One, model=Mapping)
     equilibrium_states = RelationshipFrom('EquilibriumState', 'E2T', model=Barrier)
 
@@ -404,9 +410,15 @@ class TransitionState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
         if structure is not None:
             xyz = structure._conformers[0]
             energy = structure.meta['energy']
-            # todo: check duplicates. load existing
-            super().__init__(xyz_json=xyz, energy=energy)
-            self.save()
+            signature = [None] * len(structure)
+            for n, m in structure.atoms_order.items():
+                signature[m - 1] = [round(x, 4) for x in xyz[n]]
+            signature = str(signature)
+            super().__init__(xyz_json=xyz, energy=energy, signature=signature)
+            try:
+                self.save()
+            except UniqueProperty:
+                self.id = self.nodes.get(signature=signature, lazy=True)  # get id of existing node
         else:
             super().__init__(**kwargs)
 
