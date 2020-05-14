@@ -47,7 +47,6 @@ dash = Dash(__name__, external_stylesheets=external_stylesheets, external_script
 dash.title = 'AFIRdb'
 dash.layout = get_layout(dash)
 dash.server.secret_key = getenv('SECRET_KEY', 'development')
-paths = []
 
 @dash.callback([Output('editor', 'upload'), Output('table', 'data')], [Input('editor', 'download')])
 def search(mrv):
@@ -111,22 +110,26 @@ def graph(row_id, table):
 
 
 @dash.callback([Output('reagent_img2', 'src'), Output('product_img2', 'src'), Output('paths-graph', 'figure'),
-                Output('net', 'data'), Output('structure', 'value'), Output('net_img', 'src')],
+                Output('net', 'data'), Output('structure', 'value'), Output('net_img', 'src'),
+                Output('table3','data')],
                [Input('table2', 'selected_rows'), Input('paths-graph', 'clickData'), Input('net', 'selectedId'),
-                Input('radio','value')],
+                Input('table3','selected_rows')],
                [State('table2', 'data'), State('paths-graph', 'figure'), State('reagent_img2', 'src'),
-                State('product_img2', 'src'), State('net', 'data'), State('structure', 'value'), State('net_img', 'src')
-                ])
-def graph(row_id2_inp, path_graph_click, netid, radio, table2, path_graph_data, reagent_img2, product_img2, net_data,
-          struct_d3, net_img):
+                State('product_img2', 'src'), State('net', 'data'), State('structure', 'value'), State('net_img', 'src'),
+                State('table3','data')])
+def graph(row_id2_inp, path_graph_click, netid, table3_row, table2, path_graph_data, reagent_img2, product_img2, net_data,
+          struct_d3, net_img, table3_data):
     ctx = callback_context
     element_id = ctx.triggered[0]['prop_id'].split('.')[0]
     print(ctx.triggered[0])
     #print(row_id2_inp, path_graph_click, table2, path_graph_data, reagent_img2, product_img2, net_data, struct_d3)
-    if element_id == 'table2' and not row_id2_inp:
-        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img
+    #if element_id == 'table2' and not row_id2_inp:
+    #    return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img, table3_data
 
-    elif (element_id == 'table2' and row_id2_inp) or (element_id =='radio' and row_id2_inp):
+    if element_id == 'table3' and not table3_row:
+        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img, table3_data
+
+    elif element_id == 'table2' and row_id2_inp:
         row = table2[row_id2_inp[0]]
         m1 = Complex.get(row['reactant'])
         m2 = Complex.get(row['product'])
@@ -134,7 +137,8 @@ def graph(row_id2_inp, path_graph_click, netid, radio, table2, path_graph_data, 
         b2 = m2.brutto.all()[0]
         if b1 == b2:
             graph_nodes = [{'id': str(x.id), 'color': "grey"} for x in b1.complexes.all()]
-            graph_links = [{'source': r.reactant.all()[0].id, 'target':r.product.all()[0].id, 'color':"green"} for r in b1.reactions.all()]
+            graph_links = [{'source': r.reactant.all()[0].id, 'target': r.product.all()[0].id, 'color': "green"} for r
+                           in b1.reactions.all()]
             net_data = {'nodes': graph_nodes, 'links': graph_links}
         else:
             pass
@@ -144,31 +148,50 @@ def graph(row_id2_inp, path_graph_click, netid, radio, table2, path_graph_data, 
             reagent_img2 = s1
             product_img2 = s2
         max_path = 5
-        #max_path_graph = max_path +1 # mols were not included
-        paths = m1.get_effective_paths(m2, max_path)
-        #print(paths)
-        paths = [paths[int(radio)-1]]
-        zero_en = paths[0].nodes[0].energy
-        longest = max(len(x.nodes) for x in paths)
-        nodes = {m1.id: (0, 0, reactant_color, "Complex "+str(m1.id)), m2.id: (longest * 5, (paths[0].nodes[-1].energy-zero_en)*627.51, product_color, "Complex "+str(m2.id))}
-        edges = []
-        for r, path in enumerate(paths):
-            #nodes[path.nodes[0].id] = (1 * max_path_graph, 0,  molecule_color, True)
-            for n, (x, c) in enumerate(zip(path.nodes, [0]+path.cost), start=1):
-                if x.id not in nodes:
-                    nodes[x.id] = (n * 5, (x.energy - zero_en)*627.51 if n % 2 else (x.energy - zero_en + c)*627.51, molecule_color if n % 2 else reaction_color, "Complex "+str(x.id) if n % 2 else "Reaction")
-            #edges.append(nodes[m1.id][:2])
-            for n in path.nodes:
-                edges.append(nodes[n.id][:2])
-            #edges.append(nodes[m2.id][:2])
-            edges.append((None, None))
+        # max_path_graph = max_path +1 # mols were not included
+        paths_all = m1.get_effective_paths(m2, max_path)
+        # print(paths)
+        table3_data = []
+        for paths in paths_all: # дальше тихий ужас. но пока лень переписывать
+            paths = [paths]
+            zero_en = paths[0].nodes[0].energy
+            longest = max(len(x.nodes) for x in paths)
+            nodes = {m1.id: (0, 0, reactant_color, "Complex " + str(m1.id)), m2.id: (
+            longest * 5, (paths[0].nodes[-1].energy - zero_en) * 627.51, product_color, "Complex " + str(m2.id))}
+            edges = []
+            for r, path in enumerate(paths):
+                d = {}
+                d["brutto"] = str(b1)
+                d["energy"] = round(path.total_cost *627.51,2)
+                # nodes[path.nodes[0].id] = (1 * max_path_graph, 0,  molecule_color, True)
+                for n, (x, c) in enumerate(zip(path.nodes, [0] + path.cost), start=1):
+                    if x.id not in nodes:
+                        nodes[x.id] = (n * 5, (x.energy - zero_en) * 627.51 if n % 2 else (x.energy - zero_en + c) * 627.51,
+                                       molecule_color if n % 2 else reaction_color,
+                                       "Complex " + str(x.id) if n % 2 else "Reaction")
+                # edges.append(nodes[m1.id][:2])
+                d["len"] = (len(nodes) - 1) / 2
+                for n in path.nodes:
+                    edges.append(nodes[n.id][:2])
+                # edges.append(nodes[m2.id][:2])
+                edges.append((None, None))
+                d["nodes"] = nodes
+                d["path_graph_data"] = get_figure(edges, nodes)
+                table3_data.append(d)
+        #print(table3_data)
+        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img, table3_data
+
+    elif element_id == 'table3' and table3_row:
+        row = table3_data[table3_row[0]]
+        nodes = row["nodes"]
+        print(nodes)
         for i in net_data['nodes']:
             i['radius'] = 10
-            if int(i['id']) in nodes:
-                i['color'] = nodes[int(i['id'])][2]
-        path_graph_data = get_figure(edges, nodes)
-
-        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img
+            if i['id'] in nodes:
+                i['color'] = nodes[i['id']][2]
+        path_graph_data = row["path_graph_data"]
+        #print(net_data["nodes"])
+        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img, table3_data
 
     elif element_id == 'paths-graph' and path_graph_click:
         #print(path_graph_data['data'][1]['marker'])
@@ -194,7 +217,7 @@ def graph(row_id2_inp, path_graph_click, netid, radio, table2, path_graph_data, 
                     if m is not None:
                         net_img = svg2html(m.depict())
 
-        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img
+        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img, table3_data
 
     elif element_id == 'net' and netid is not None:
         #print(net_data)
@@ -205,10 +228,10 @@ def graph(row_id2_inp, path_graph_click, netid, radio, table2, path_graph_data, 
                 with db_session:
                     m = Complex.get(int(netid))
                     net_img = svg2html(m.depict())
-        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img
+        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img, table3_data
 
     elif element_id == 'net' and netid is None:
-        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img
+        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img, table3_data
 
     else:
         print("blanc")
@@ -218,6 +241,7 @@ def graph(row_id2_inp, path_graph_click, netid, radio, table2, path_graph_data, 
         net_data = {'nodes': [], 'links': []}
         struct_d3 = {'atoms': [], 'bonds': []}
         net_img = ""
-        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img
+        table3_data = [{ 'brutto': 'No results', 'len': 'No results', 'energy': 'No results'}]
+        return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img, table3_data
 
 __all__ = ['dash']
