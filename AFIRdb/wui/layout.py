@@ -118,18 +118,34 @@ def get_layout(app):
                       style={'backgroundColor': product_color, 'maxHeight': '200px'})], className='row')
     ])
 
-    row_3 = Div([RadioItems(id='radio',
-                               options=[
-                                   {'label': 'Best', 'value': '1'},
-                                   {'label': 'Second', 'value': '2'},
-                                   {'label': 'Third', 'value': '3'},
-                                   {'label': 'Fourth', 'value': '4'},
-                                   {'label': 'Fifth', 'value': '5'}
-                               ],
-                               value='1',
-                               labelStyle={'display': 'inline-block', }
-                               ),
-                Br(),
+    row_3 = Div([DataTable(id='table3', columns=[  # {'name': 'Reactant', 'id': 'reactant', 'color': reactant_color},
+                                                  {'name': 'EmpiricalFormula', 'id': 'brutto'},
+                                                 {'name': 'Reactions in path', 'id': 'len'},
+                                                {'name': 'Sum of barriers', 'id': 'energy'}],
+                       fixed_rows={'headers': True, 'data': 0},
+                       row_selectable='single',
+                       style_data={
+                           'whiteSpace': 'normal',
+                           'height': 'auto'},
+                       style_table={'maxHeight': '300px', 'overflowY': 'scroll', 'overflowX': 'hidden'},
+                       # hidden_columns=['reactant', 'product'],
+                       style_cell={'textAlign': 'left'},
+                       style_as_list_view=True,
+                       style_cell_conditional=[{
+                           'if': {'column_id': 'brutto'},
+                           'width': '50%'
+                            },
+                           {
+                               'if': {'column_id': 'len'},
+                               'width': '20%'
+                           },
+                           {
+                               'if': {'column_id': 'energy'},
+                               'width': '20%'
+                           }
+                       ]
+                        ),
+                Hr(),
                 Div([Div([Graph(id='paths-graph')], className='col-md-8'),
                     Div([Mol3dDash(id='structure')], className='col-md-4')],  style={'min-height': '400px'},
                             className='row col-12')
