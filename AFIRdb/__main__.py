@@ -39,7 +39,7 @@ def web_core(args, db):
     @dash.server.before_request
     def db_config():
         db.cgrdb_init_session()
-    dash.run_server(port=ds.port, host=ds.hostname, debug=True)
+    dash.run_server(port=ds.port, host=ds.hostname, debug=args.debug)
 
 
 parser = ArgumentParser(description="fill DB with data", formatter_class=ArgumentDefaultsHelpFormatter)

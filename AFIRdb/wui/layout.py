@@ -24,8 +24,8 @@ from dash_table import DataTable
 from mol3d_dash import Mol3dDash
 from dash_network import Network
 
-reactant_color = '#93e3ed'
-product_color = '#f77ea5'
+reactant_color = '#8fbff2'
+product_color = '#fcca95'
 molecule_color = 'blue'
 reaction_color = 'red'
 
@@ -161,6 +161,6 @@ def get_layout(app):
                         style={'maxHeight': '200px'}),
     ], className='row')
 
-    layout = Div([H1("AFIR database visualisation", style={'textAlign': 'center'}),
+    layout = Div([H1("AFIR DB graphical user interface", style={'textAlign': 'center'}),
                   row_1, Hr(), row_2, Hr(), row_2_2, Hr(), row_3, Hr(), row_4])
     return layout
