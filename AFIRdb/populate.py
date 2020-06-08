@@ -21,6 +21,8 @@ from os import listdir
 from os.path import join
 from .graph import Reaction
 from .parser import log_parser
+from dash_html_components import Div
+import codecs
 
 
 def load_data(files, suffix):
@@ -36,5 +38,41 @@ def load_data(files, suffix):
         Reaction(backward)
         print(f'processed: {f}')
 
+def load_one_file(file):
+    try:
+        StreamReader = codecs.getreader('utf-8')  # here you pass the encoding
+        wrapper_file = StreamReader(file)
+        forward, backward = log_parser(wrapper_file)
+    except ValueError:
+        print(f'invalid: {file}')
+        return "bad"
+    Reaction(forward)
+    Reaction(backward)
+    print(f'processed: {file}')
+    return "good"
+
+def load_data_remotely(files):
+    divs = []
+    good = 0
+    bad = 0
+    for n, f in enumerate(files, start=1):
+        try:
+            StreamReader = codecs.getreader('utf-8')  # here you pass the encoding
+            wrapper_file = StreamReader(f)
+            forward, backward = log_parser(wrapper_file)
+        except ValueError:
+            print(f'invalid: {n}')
+            bad += 1
+            continue
+        Reaction(forward)
+        Reaction(backward)
+        print(f'processed: {n}')
+        good += 1
+    else:
+        divs.append(Div([
+            '{} log files were processed and added to database, {} files were not processed due to errors,'
+            ' not log files are omitted and were not taken into account'.format(good, bad)
+        ]))
+    return divs
 
 __all__ = ['load_data']

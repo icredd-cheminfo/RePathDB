@@ -7,8 +7,10 @@ COPY AFIRdb tmp/AFIRdb
 COPY setup.py tmp/setup.py
 COPY README.md tmp/README.md
 COPY mol3d_dash-0.0.1-py3-none-any.whl tmp/mol3d_dash-0.0.1-py3-none-any.whl
+COPY AFIRdb/wui/assets/*.png /usr/local/lib/python3.6/dist-packages/AFIRdb/wui/assets/
 # RUN pip3 install -U git+https://github.com/cimm-kzn/CGRtools.git@master#egg=CGRTools[clean2djit,mrv]
 RUN cd tmp && pip3 install . && rm -rf AFIRdb setup.py README.md && cd ..
+RUN pip3 install dash-uploader
 
 EXPOSE 5000 7474 5432 7687
 

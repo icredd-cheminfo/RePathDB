@@ -17,22 +17,28 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-from base64 import encodebytes
+from base64 import encodebytes,b64encode
 from CGRdb import Molecule as pMolecule
-from CGRtools import MoleculeContainer, MRVRead, MRVWrite
-from dash import Dash
+from CGRtools import MoleculeContainer, MRVRead
+from dash import Dash, callback_context
 from dash.dependencies import Input, Output, State
-from dash import callback_context
+from dash_html_components import Div
+from ..graph import Molecule, Complex
 from itertools import product
-from io import StringIO, BytesIO
-from os import getenv
+from io import BytesIO
+from .layout import get_layout, reactant_color, product_color, reaction_color, molecule_color, UPLOAD_FOLDER_ROOT
+from os import getenv, remove
 from pony.orm import db_session
-from .layout import get_layout, reactant_color, product_color, reaction_color, molecule_color
 from .plugins import external_scripts, external_stylesheets
-from ..graph import Molecule, Reaction, Complex
-from plotly.graph_objects import Figure, Layout, Scatter
-from .utilities import get_figure, get_3d, draw, get_mrv
+from plotly.graph_objects import Figure
+from pathlib import Path
+from ..populate import load_one_file
+from .utilities import get_figure, get_3d, draw, get_mrv, cleanDB
 
+from flask import make_response
+
+import zipfile
+from collections import Counter
 
 MoleculeContainer._render_config['mapping'] = False
 color_map = ['rgb(0,104,55)', 'rgb(26,152,80)', 'rgb(102,189,99)', 'rgb(166,217,106)', 'rgb(217,239,139)',
@@ -47,6 +53,7 @@ dash = Dash(__name__, external_stylesheets=external_stylesheets, external_script
 dash.title = 'AFIRdb'
 dash.layout = get_layout(dash)
 dash.server.secret_key = getenv('SECRET_KEY', 'development')
+
 
 @dash.callback([Output('editor', 'upload'), Output('table', 'data')], [Input('editor', 'download')])
 def search(mrv):
@@ -81,7 +88,7 @@ def search(mrv):
 
 
 @dash.callback([Output('reagent_img', 'src'), Output('product_img', 'src'), Output('table2', 'data'),
-                Output('table2','selected_rows')],
+                Output('table2', 'selected_rows')],
                [Input('table', 'selected_rows')], [State('table', 'data')])
 def graph(row_id, table):
     if not row_id:
@@ -96,13 +103,13 @@ def graph(row_id, table):
         s1 = svg2html(m1.depict())
         s2 = svg2html(m2.depict())
     max_path = 1
-    #max_path_graph = max_path +1 # mols were not included
+    # max_path_graph = max_path +1 # mols were not included
     paths = m1.get_effective_paths(m2, max_path)
     pairs = []
     for r, path in enumerate(paths):
-        #print(path.nodes[0])
-        #a = Complex.nodes.get(path.nodes[0])
-        #b = Complex.nodes.get(path.nodes[-1])
+        # print(path.nodes[0])
+        # a = Complex.nodes.get(path.nodes[0])
+        # b = Complex.nodes.get(path.nodes[-1])
         pairs.append({'reactant': path.nodes[0].id, 'product': path.nodes[-1].id,
                       'reactant_structure': path.nodes[0].signature, 'product_structure': path.nodes[-1].signature})
 
@@ -111,21 +118,19 @@ def graph(row_id, table):
 
 @dash.callback([Output('reagent_img2', 'src'), Output('product_img2', 'src'), Output('paths-graph', 'figure'),
                 Output('net', 'data'), Output('structure', 'value'), Output('net_img', 'src'),
-                Output('table3','data')],
+                Output('table3', 'data')],
                [Input('table2', 'selected_rows'), Input('paths-graph', 'clickData'), Input('net', 'selectedId'),
-                Input('table3','selected_rows')],
+                Input('table3', 'selected_rows')],
                [State('table2', 'data'), State('paths-graph', 'figure'), State('reagent_img2', 'src'),
-                State('product_img2', 'src'), State('net', 'data'), State('structure', 'value'), State('net_img', 'src'),
-                State('table3','data')])
-def graph(row_id2_inp, path_graph_click, netid, table3_row, table2, path_graph_data, reagent_img2, product_img2, net_data,
+                State('product_img2', 'src'), State('net', 'data'), State('structure', 'value'),
+                State('net_img', 'src'),
+                State('table3', 'data')])
+def graph(row_id2_inp, path_graph_click, netid, table3_row, table2, path_graph_data, reagent_img2, product_img2,
+          net_data,
           struct_d3, net_img, table3_data):
     ctx = callback_context
     element_id = ctx.triggered[0]['prop_id'].split('.')[0]
     print(ctx.triggered[0])
-    #print(row_id2_inp, path_graph_click, table2, path_graph_data, reagent_img2, product_img2, net_data, struct_d3)
-    #if element_id == 'table2' and not row_id2_inp:
-    #    return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img, table3_data
-
     if element_id == 'table3' and not table3_row:
         return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img, table3_data
 
@@ -152,23 +157,24 @@ def graph(row_id2_inp, path_graph_click, netid, table3_row, table2, path_graph_d
         paths_all = m1.get_effective_paths(m2, max_path)
         # print(paths)
         table3_data = []
-        for paths in paths_all: # дальше тихий ужас. но пока лень переписывать
+        for paths in paths_all:  # дальше тихий ужас. но пока лень переписывать
             paths = [paths]
             zero_en = paths[0].nodes[0].energy
             longest = max(len(x.nodes) for x in paths)
             nodes = {m1.id: (0, 0, reactant_color, "Complex " + str(m1.id)), m2.id: (
-            longest * 5, (paths[0].nodes[-1].energy - zero_en) * 627.51, product_color, "Complex " + str(m2.id))}
+                longest * 5, (paths[0].nodes[-1].energy - zero_en) * 627.51, product_color, "Complex " + str(m2.id))}
             edges = []
             for r, path in enumerate(paths):
                 d = {}
                 d["brutto"] = str(b1)
-                d["energy"] = round(path.total_cost *627.51,2)
+                d["energy"] = round(path.total_cost * 627.51, 2)
                 # nodes[path.nodes[0].id] = (1 * max_path_graph, 0,  molecule_color, True)
                 for n, (x, c) in enumerate(zip(path.nodes, [0] + path.cost), start=1):
                     if x.id not in nodes:
-                        nodes[x.id] = (n * 5, (x.energy - zero_en) * 627.51 if n % 2 else (x.energy - zero_en + c) * 627.51,
-                                       molecule_color if n % 2 else reaction_color,
-                                       "Complex " + str(x.id) if n % 2 else "Reaction")
+                        nodes[x.id] = (
+                        n * 5, (x.energy - zero_en) * 627.51 if n % 2 else (x.energy - zero_en + c) * 627.51,
+                        molecule_color if n % 2 else reaction_color,
+                        "Complex " + str(x.id) if n % 2 else "Reaction")
                 # edges.append(nodes[m1.id][:2])
                 d["len"] = (len(nodes) - 1) / 2
                 for n in path.nodes:
@@ -178,7 +184,7 @@ def graph(row_id2_inp, path_graph_click, netid, table3_row, table2, path_graph_d
                 d["nodes"] = nodes
                 d["path_graph_data"] = get_figure(edges, nodes)
                 table3_data.append(d)
-        #print(table3_data)
+        # print(table3_data)
         return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img, table3_data
 
     elif element_id == 'table3' and table3_row:
@@ -190,12 +196,11 @@ def graph(row_id2_inp, path_graph_click, netid, table3_row, table2, path_graph_d
             if i['id'] in nodes:
                 i['color'] = nodes[i['id']][2]
         path_graph_data = row["path_graph_data"]
-        #print(net_data["nodes"])
         return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img, table3_data
 
     elif element_id == 'paths-graph' and path_graph_click:
-        #print(path_graph_data['data'][1]['marker'])
-        #print(path_graph_click)
+        # print(path_graph_data['data'][1]['marker'])
+        # print(path_graph_click)
         struct_d3 = draw(path_graph_click)
         id = path_graph_click['points'][0]['pointIndex']
         path_graph_data['data'][1]['marker']['color'][0] = reactant_color
@@ -220,7 +225,7 @@ def graph(row_id2_inp, path_graph_click, netid, table3_row, table2, path_graph_d
         return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img, table3_data
 
     elif element_id == 'net' and netid is not None:
-        #print(net_data)
+        # print(net_data)
         for i in net_data['nodes']:
             i['radius'] = 10
             if i['id'] == netid:
@@ -241,7 +246,53 @@ def graph(row_id2_inp, path_graph_click, netid, table3_row, table2, path_graph_d
         net_data = {'nodes': [], 'links': []}
         struct_d3 = {'atoms': [], 'bonds': []}
         net_img = ""
-        table3_data = [{ 'brutto': 'No results', 'len': 'No results', 'energy': 'No results'}]
+        table3_data = [{'brutto': 'No results', 'len': 'No results', 'energy': 'No results'}]
         return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img, table3_data
+
+
+@dash.callback(Output('file_upload-output', 'children'),
+               [Input('file_upload', 'isCompleted')],
+               [State('file_upload', 'fileNames'),
+                State('file_upload', 'upload_id')], )
+def get_files(iscompleted, filenames, upload_id):
+    ctx = callback_context
+    element_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    print(element_id)
+    if not iscompleted:
+        return
+
+    if filenames is not None:
+        if upload_id:
+            root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
+        else:
+            root_folder = Path(UPLOAD_FOLDER_ROOT)
+        counter = Counter()
+        for filename in filenames:
+            file = root_folder / filename
+            archive = zipfile.ZipFile(file, 'r')
+            for one in archive.namelist()[1:]:
+                print(one)
+                with archive.open(one) as file_open:
+                    counter[load_one_file(file_open)] += 1
+            remove(file)
+            print("{} removed".format(file))
+        return Div([
+            '{} log files were processed and added to database, {} files were not processed due to errors,'
+            ' not log files are omitted and were not taken into account'.format(counter["good"], counter["bad"])
+        ])
+
+    return Div("No Files Uploaded Yet!")
+
+
+@dash.server.route('/pictures/<name>')
+def get_picture(name):
+    if name is not None:
+        encoded_image = b64encode(
+            open("/usr/local/lib/python3.6/dist-packages/AFIRdb/wui" + dash.get_asset_url(name), 'rb').read())
+        # resp = Img(src='data:image/png;base64,{}'.format(encoded_image.decode()))
+        resp = make_response('data:image/png;base64,{}'.format(encoded_image))
+        resp.headers['Content-Type'] = 'image/png'
+        return resp
+
 
 __all__ = ['dash']
