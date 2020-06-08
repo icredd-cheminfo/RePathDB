@@ -1,8 +1,9 @@
 from plotly.graph_objects import Figure, Layout, Scatter
-from CGRdb import db_session
-from ..graph import Molecule, Reaction, Complex
+from CGRdb import db_session, Molecule as cMolecule
+from ..graph import Reaction, Complex, Molecule, Brutto, EquilibriumState, TransitionState
 from io import StringIO
 from CGRtools import  MRVWrite
+
 
 def get_figure(edges, nodes):
     edge_trace = Scatter(
@@ -106,3 +107,22 @@ def get_mrv(structure):
         with MRVWrite(f) as o:
             o.write(structure)
             return f.getvalue()
+
+
+def cleanDB():
+    with db_session:
+        for i in cMolecule.select():
+            i.delete()
+    for i in Molecule.nodes.all():
+        i.delete()
+    for i in TransitionState.nodes.all():
+        i.delete()
+    for i in EquilibriumState.nodes.all():
+        i.delete()
+    for i in Reaction.nodes.all():
+        i.delete()
+    for i in Complex.nodes.all():
+        i.delete()
+    for i in Brutto.nodes.all():
+        i.delete()
+    return print("cleaned")
