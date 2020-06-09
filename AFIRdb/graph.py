@@ -24,7 +24,9 @@ from neomodel import (StructuredNode, StructuredRel, IntegerProperty, FloatPrope
                       RelationshipFrom, One, NodeMeta, StringProperty, DoesNotExist, UniqueProperty)
 from operator import or_
 from pony.orm import db_session, flush
-
+from itertools import count
+from itertools import islice
+from heapq import heappush, heappop
 
 weighted_path = namedtuple('WeightedPath', ['nodes', 'cost', 'total_cost'])
 
@@ -114,33 +116,52 @@ class Molecule(Mixin, StructuredNode, metaclass=ExtNodeMeta):
         else:
             super().__init__(**kwargs)
 
+    def search_path(self, target: 'Molecule', max_len=10):
+        seen = set(self.complexes.all())
+        final_compl = set(target.complexes.all())
+        cur_compl = seen - final_compl
+        final_compl -= seen
+        if not final_compl:
+            return
+        queue = []
+        n = count()
+        for x in cur_compl:
+            heappush(queue, (1, 0, next(n), [(x, 0)]))
+        old_len = 1
+        new_seen = set()
+        while queue:
+            level, prev_barrier, _, init_path = heappop(queue)
+            cur = init_path[-1][0]
+            if len(init_path) != old_len:
+                seen.update(new_seen)
+                old_len = len(init_path)
+            cur_len = len(init_path) + 1 < max_len
+            for i, r in enumerate(cur.reactant.all()):
+                barrier = (r.energy - cur.energy) * 627.51
+                # barrier = barrier if barrier > prev_barrier else prev_barrier
+                prod = r.product.all()[0]
+                if prod in final_compl:
+                    path = init_path.copy()
+                    path.append((prod, barrier))
+                    yield path
+                elif cur_len and prod not in seen:
+                    new_seen.add(prod)
+                    path = init_path.copy()
+                    path.append((prod, barrier))
+                    heappush(queue, (len(path), barrier, next(n), path))
+
     def has_path(self, target: 'Molecule'):
         if target.id == self.id:
             return False
-        q = f'''MATCH path = (a:Molecule{{cgrdb:{self.cgrdb}}})-[:M2C]-(n)-[:C2R|:R2C*..6]-(m)-[:M2C]-(c:Molecule{{cgrdb:{target.cgrdb}}})
-WHERE id(n)<>id(m)
-WITH path LIMIT 1
-RETURN 1 as found'''
-        print(self.cgrdb, target.cgrdb)
-        return bool(self.cypher(q)[0])
+        return bool(next(self.search_path(target), False))
 
     def get_effective_paths(self, target: 'Molecule', limit: int = 1):
         if not limit:
             raise ValueError('limit should be positive')
-        q = f'''MATCH (:Molecule{{cgrdb:{self.cgrdb}}})-[]->(start:Complex)
-MATCH (:Molecule{{cgrdb:{target.cgrdb}}})-[]->(end:Complex)
-WITH start,end
-CALL algo.kShortestPaths.stream(start, end, {limit}, null, {{nodeQuery:'MATCH (n) WHERE n:Complex OR n:Reaction RETURN id(n) as id',
-relationshipQuery:'MATCH (n:Complex)-[a:C2R]->(r:Reaction)
-RETURN id(n) as source, id(r) as target, a.energy as weight
-UNION
-MATCH (r:Reaction)<-[:R2C]-(n:Complex)
-RETURN id(r) as source, id(n) as target, 0 as weight',graph:"cypher"}})
-YIELD index, nodeIds, costs
-RETURN nodeIds AS path, costs, reduce(acc = 0.0, cost in costs | acc + cost) AS total_cos'''
+        res = islice(self.search_path(target), limit)
         paths = []
         cache = {}
-        for nodes, costs, total in self.cypher(q)[0]:
+        for nodes, costs, total in res:
             nodes = tuple(cache.get(n) or cache.setdefault(n, (Reaction if i % 2 else Complex).get(n))
                           for i, n in enumerate(nodes))
             paths.append(weighted_path(nodes, costs, total))
