@@ -34,7 +34,15 @@ reaction_color = 'red'
 readme = '''
 # Instructions
 
-AFIR DB GUI
+### AFIR DB GUI
+The Graphical User Interface consists of four main sections:
+
+  * Query preparation
+  *	Retrieved molecules 
+  *	Retrieved complexes 
+  * Reactions pathways
+
+### Query preparation
 
 ![1.png](/assets/1.png)
 
@@ -42,27 +50,31 @@ Reaction query is created in a molecular structure sketcher. Both the reactant a
 Once the structures are drawn, click the Upload button (circled in red) to submit the query to the database.
 The search in the database is performed by substructure and similarity of reactant and product molecules.
 
+### Retrieved molecules and retrieved complexes
+
 ![2.png](/assets/2.png)
 
-The results of the search will be shown in the Molecules Table as SMILES code (on the left). The reactants are shown in 
-light blue, the products in light brown. Select the desired pair by clicking on the radio button on the left. 
-For the selected pair, all the complexes containing these molecules will be shown in the Complex table (on the right). 
-The color code is the same. 
-Selecting the Complex pair will allow to analyze the reaction pathways connecting them. Additionally, 
-the 2D structures of the selected reactant-product molecule pair and complex pair will be shown under the tables: 
+Retrieved structures are then ranked by similarity (Tanimoto coefficient) and shown in the Molecules Table as SMILES
+code (on the left). The reactants are shown in light blue, the products in light brown. Particular reactant/product pair
+can be selected by clicking on the radio button on the left. For the selected pair, all complexes containing either 
+reactant or product molecules are shown in the Complexes table (on the right). Selection of a pair of related Complexes
+allows to analyze one or several reaction pathways connecting them. Additionally, the 2D structures of the selected 
+reactant-product pairs of molecule and complexes are visualized.  
 
 ![3.png](/assets/3.png)
 
-The table below shows up to 5 top pathways connecting the reactants and products. Each row also shows the length of the
-path (in number of transformations along the path) and the sum of energy barriers (which is used as the scoring function
-for pathway selection). 
+### Reaction pathway analysis
+
+Reaction pathway table provides an information about up to 5 most optimal pathways including their length (the number 
+of transformations along the path) and the sum of energy barriers (used as a score to rank the pathways). 
+
+Selecting a row by clicking the radio button on the left will show the corresponding energy diagram:
 
 ![4.png](/assets/4.png)
 
-Selecting a row by clicking the radio button on the left will show the corresponding energy diagram:
 The color code for the diagram is the following: light blue for the reactant complex, light brown for the product complex,
 blue for the intermediate equilibrium states, red for transition states. Clicking any point will show
-the 3D structure of the lowest energy configuration:
+the 3D structure of the lowest energy configuration.
 
 ![5.png](/assets/5.png)
 
@@ -75,8 +87,12 @@ and the created bonds colored green. The structure visualization window is inter
 On the bottom of the full graph of the reaction pathway network to which the selected path belongs is shown. 
 The nodes are Complexes, and the edges are Reactions. The Complexes involved in the pathway selected above are colored
 according to the same color scheme. Clicking on any node will show the 2D structure of the complex (top right here)
- and make the node larger to indicate it was selected.
+and make the node larger to indicate it was selected.
  
+Ensemble of species generated in a given AFIR run can be represented as a full graph in which the nodes are Complexes, 
+and the edges are Reactions. The Complexes involved in previously selected pathway are colored as on the Pathway diagram.
+Clicking on any node will show the 2D structure of related complex. 
+
 ![7.png](/assets/7.png) 
 
 '''

@@ -31,7 +31,7 @@ RUN neo4j-admin set-initial-password 'afirdb'
 # install CGRdb
 RUN git clone https://github.com/stsouko/smlar.git && \
     cd smlar && USE_PGXS=1 make && USE_PGXS=1 make install && cd .. & rm -rf smlar && \
-    pip3 install compress-pickle git+https://github.com/cimm-kzn/CGRtools.git@master#egg=CGRtools[MRV] \
+    pip3 install numba dash-uploader compress-pickle git+https://github.com/cimm-kzn/CGRtools.git@master#egg=CGRtools[clean2djit,MRV] \
     git+https://github.com/stsouko/CIMtools.git@master#egg=CIMtools \
     git+https://github.com/stsouko/CGRdb.git@master#egg=CGRdb[postgres]
 
@@ -51,6 +51,7 @@ RUN cd tmp && pip3 install . && rm -rf AFIRdb setup.py README.md && cd ..
 RUN service neo4j start && sleep 10 && neomodel_install_labels AFIRdb AFIRdb.graph --db bolt://neo4j:afirdb@localhost:7687 && service neo4j stop
 # setup MarvinJS
 COPY mjs /usr/local/lib/python3.6/dist-packages/AFIRdb/wui/assets/mjs
+COPY AFIRdb/wui/assets/* /usr/local/lib/python3.6/dist-packages/AFIRdb/wui/assets/
 COPY boot.sh /opt/boot
 
 #VOLUME ["/var/log/postgresql", "/var/lib/postgresql"]
