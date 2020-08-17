@@ -22,7 +22,7 @@ from CGRtools.containers import ReactionContainer
 from io import StringIO
 from typing import Iterator
 
-xyz = XYZRead(StringIO()).from_xyz
+xyz = XYZRead(StringIO()).parse
 
 
 def log_parser(file) -> Iterator[ReactionContainer]:

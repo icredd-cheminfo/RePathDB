@@ -102,7 +102,7 @@ def graph(row_id, table):
     with db_session:
         s1 = svg2html(m1.depict())
         s2 = svg2html(m2.depict())
-    max_path = 1
+    max_path = 10
     # max_path_graph = max_path +1 # mols were not included
     paths = m1.get_effective_paths(m2, max_path)
     pairs = []
@@ -112,7 +112,7 @@ def graph(row_id, table):
         # b = Complex.nodes.get(path.nodes[-1])
         pairs.append({'reactant': path.nodes[0].id, 'product': path.nodes[-1].id,
                       'reactant_structure': path.nodes[0].signature, 'product_structure': path.nodes[-1].signature})
-
+    #print(pairs)
     return s1, s2, pairs, []
 
 
@@ -152,38 +152,39 @@ def graph(row_id2_inp, path_graph_click, netid, table3_row, table2, path_graph_d
             s2 = svg2html(m2.depict())
             reagent_img2 = s1
             product_img2 = s2
-        max_path = 5
+        max_path = 10
         # max_path_graph = max_path +1 # mols were not included
-        paths_all = m1.get_effective_paths(m2, max_path)
+        paths = m1.get_effective_paths(m2, max_path)
         # print(paths)
         table3_data = []
-        for paths in paths_all:  # дальше тихий ужас. но пока лень переписывать
-            paths = [paths]
-            zero_en = paths[0].nodes[0].energy
-            longest = max(len(x.nodes) for x in paths)
+        longest = max(len(path.nodes) for path in paths)
+        for path in sorted(paths, key=lambda x: (((len(x.nodes) - 1) / 2), x.total_cost)):  # дальше тихий ужас. но пока лень переписывать
+            #paths = [paths]
+            zero_en = path.nodes[0].energy
+            #longest = max(len(path.nodes))# for x in paths)
             nodes = {m1.id: (0, 0, reactant_color, "Complex " + str(m1.id)), m2.id: (
-                longest * 5, (paths[0].nodes[-1].energy - zero_en) * 627.51, product_color, "Complex " + str(m2.id))}
+                longest * 5, (path.nodes[-1].energy - zero_en) * 627.51, product_color, "Complex " + str(m2.id))}
             edges = []
-            for r, path in enumerate(paths):
-                d = {}
-                d["brutto"] = str(b1)
-                d["energy"] = round(path.total_cost * 627.51, 2)
-                # nodes[path.nodes[0].id] = (1 * max_path_graph, 0,  molecule_color, True)
-                for n, (x, c) in enumerate(zip(path.nodes, [0] + path.cost), start=1):
-                    if x.id not in nodes:
-                        nodes[x.id] = (
-                        n * 5, (x.energy - zero_en) * 627.51 if n % 2 else (x.energy - zero_en + c) * 627.51,
-                        molecule_color if n % 2 else reaction_color,
-                        "Complex " + str(x.id) if n % 2 else "Reaction")
-                # edges.append(nodes[m1.id][:2])
-                d["len"] = (len(nodes) - 1) / 2
-                for n in path.nodes:
-                    edges.append(nodes[n.id][:2])
-                # edges.append(nodes[m2.id][:2])
-                edges.append((None, None))
-                d["nodes"] = nodes
-                d["path_graph_data"] = get_figure(edges, nodes)
-                table3_data.append(d)
+            print(path)
+            d = {}
+            d["brutto"] = str(b1)
+            d["energy"] = round(path.total_cost * 627.51, 2)
+            # nodes[path.nodes[0].id] = (1 * max_path_graph, 0,  molecule_color, True)
+            for n, (x, c) in enumerate(zip(path.nodes, path.cost), start=1):
+                if x.id not in nodes:
+                    nodes[x.id] = (
+                    n * 5, (x.energy - zero_en) * 627.51 if n % 2 else (x.energy - zero_en + c) * 627.51,
+                    molecule_color if n % 2 else reaction_color,
+                    "Complex " + str(x.id) if n % 2 else "Reaction")
+            # edges.append(nodes[m1.id][:2])
+            d["len"] = (len(nodes) - 1) / 2
+            for n in path.nodes:
+                edges.append(nodes[n.id][:2])
+            # edges.append(nodes[m2.id][:2])
+            edges.append((None, None))
+            d["nodes"] = nodes
+            d["path_graph_data"] = get_figure(edges, nodes)
+            table3_data.append(d)
         # print(table3_data)
         return reagent_img2, product_img2, path_graph_data, net_data, struct_d3, net_img, table3_data
 

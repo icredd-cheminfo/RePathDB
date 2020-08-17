@@ -25,7 +25,7 @@ from dash_html_components import Div
 import codecs
 
 
-def load_data(files, suffix):
+def load_data(files, suffix): # method for console data upload
     for f in sorted(listdir(files)):
         if not f.endswith(suffix):
             continue
@@ -38,7 +38,7 @@ def load_data(files, suffix):
         Reaction(backward)
         print(f'processed: {f}')
 
-def load_one_file(file):
+def load_one_file(file): #method for web interface data upload (one zip file)
     try:
         StreamReader = codecs.getreader('utf-8')  # here you pass the encoding
         wrapper_file = StreamReader(file)
@@ -51,7 +51,7 @@ def load_one_file(file):
     print(f'processed: {file}')
     return "good"
 
-def load_data_remotely(files):
+def load_data_remotely(files): # old method for dash upload
     divs = []
     good = 0
     bad = 0

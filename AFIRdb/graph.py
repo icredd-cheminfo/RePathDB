@@ -137,16 +137,18 @@ class Molecule(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 old_len = len(init_path)
             cur_len = len(init_path) + 1 < max_len
             for i, r in enumerate(cur.reactant.all()):
-                barrier = (r.energy - cur.energy) * 627.51
+                barrier = (r.energy - cur.energy) #* 627.51 have not yet decided which units
                 # barrier = barrier if barrier > prev_barrier else prev_barrier
                 prod = r.product.all()[0]
                 if prod in final_compl:
                     path = init_path.copy()
+                    path.append((r, barrier))
                     path.append((prod, barrier))
                     yield path
                 elif cur_len and prod not in seen:
                     new_seen.add(prod)
                     path = init_path.copy()
+                    path.append((r, barrier))
                     path.append((prod, barrier))
                     heappush(queue, (len(path), barrier, next(n), path))
 
@@ -155,16 +157,23 @@ class Molecule(Mixin, StructuredNode, metaclass=ExtNodeMeta):
             return False
         return bool(next(self.search_path(target), False))
 
-    def get_effective_paths(self, target: 'Molecule', limit: int = 1):
+    def get_effective_paths(self, target: 'Molecule', limit: int = 10):
         if not limit:
             raise ValueError('limit should be positive')
-        res = islice(self.search_path(target), limit)
+        #res = islice(self.search_path(target), limit)
         paths = []
-        cache = {}
-        for nodes, costs, total in res:
-            nodes = tuple(cache.get(n) or cache.setdefault(n, (Reaction if i % 2 else Complex).get(n))
-                          for i, n in enumerate(nodes))
+        #cache = {}
+
+        for n, path in enumerate(self.search_path(target, limit)):
+            nodes = []
+            costs = []
+            total = 0
+            for i, (node, barrier) in enumerate(path, start=1):
+                nodes.append(node)
+                costs.append(barrier) if i % 2 == 0 else costs.append(0)
+                total += costs[-1]
             paths.append(weighted_path(nodes, costs, total))
+        #print(paths)
         return paths
 
     @property
@@ -221,33 +230,64 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
         else:
             super().__init__(**kwargs)
 
-    def get_effective_paths(self, target: 'Complex', limit: int = 1):
+
+    def get_effective_paths(self, target: 'Complex', limit: int = 10):
         if not limit:
             raise ValueError('limit should be positive')
-        q = f'''MATCH (s:Complex) WHERE id(s)={self.id} 
-                MATCH (f:Complex) WHERE id(f)={target.id}
-                WITH s,f
-                CALL algo.kShortestPaths.stream(s, f, {limit}, null,
-                  {{
-                     nodeQuery:'MATCH (n) WHERE n:Complex OR n:Reaction RETURN id(n) as id',
-                     relationshipQuery:'MATCH (n:Complex)-[a:C2R]->(r:Reaction)
-                                        RETURN id(n) as source, id(r) as target, a.energy as weight
-                                        UNION
-                                        MATCH (r:Reaction)<-[a:R2C]-(n:Complex)
-                                        RETURN id(r) as source, id(n) as target, 0 as weight',
-                     direction:'OUT',
-                     graph:'cypher'
-                   }}
-                 )
-                YIELD index, nodeIds, costs
-                RETURN nodeIds AS path, costs, reduce(acc = 0.0, cost in costs | acc + cost) AS total_cost'''
+        # res = islice(self.search_path(target), limit)
         paths = []
-        cache = {}
-        for nodes, costs, total in self.cypher(q)[0]:
-            nodes = tuple(cache.get(n) or cache.setdefault(n, (Reaction if i % 2 else Complex).get(n))
-                          for i, n in enumerate(nodes))
+        # cache = {}
+
+        for n, path in enumerate(self.search_path(target, limit)):
+            nodes = []
+            costs = []
+            total = 0
+            for i, (node, barrier) in enumerate(path, start=1):
+                nodes.append(node)
+                costs.append(barrier) if i % 2 == 0 else costs.append(0)
+                total += costs[-1]
             paths.append(weighted_path(nodes, costs, total))
+        #print(paths)
         return paths
+
+
+    def search_path(self, target: 'Complex', max_len=10):
+        seen = set()
+        seen.add(self)
+        final_compl = set()
+        final_compl.add(target)
+        cur_compl = seen - final_compl
+        final_compl -= seen
+        if not final_compl:
+            return
+        queue = []
+        n = count()
+        for x in cur_compl:
+            heappush(queue, (1, 0, next(n), [(x, 0)]))
+        old_len = 1
+        new_seen = set()
+        while queue:
+            level, prev_barrier, _, init_path = heappop(queue)
+            cur = init_path[-1][0]
+            if len(init_path) != old_len:
+                seen.update(new_seen)
+                old_len = len(init_path)
+            cur_len = len(init_path) + 1 < max_len
+            for i, r in enumerate(cur.reactant.all()):
+                barrier = (r.energy - cur.energy) #* 627.51
+                # barrier = barrier if barrier > prev_barrier else prev_barrier
+                prod = r.product.all()[0]
+                if prod in final_compl:
+                    path = init_path.copy()
+                    path.append((r, barrier))
+                    path.append((prod, barrier))
+                    yield path
+                elif cur_len and prod not in seen:
+                    new_seen.add(prod)
+                    path = init_path.copy()
+                    path.append((r, barrier))
+                    path.append((prod, barrier))
+                    heappush(queue, (len(path), barrier, next(n), path))
 
     @property
     @db_session

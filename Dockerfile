@@ -18,6 +18,7 @@ COPY neo4j.conf /etc/neo4j/neo4j.conf
 
 # setup postgres
 COPY postgres.conf /etc/postgresql/10/main/conf.d/cgrdb.conf
+RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/10/main/pg_hba.conf
 RUN echo "PATH = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'" >> /etc/postgresql/10/main/environment
 USER postgres
 RUN /etc/init.d/postgresql start && \
@@ -51,9 +52,10 @@ RUN cd tmp && pip3 install . && rm -rf AFIRdb setup.py README.md && cd ..
 RUN service neo4j start && sleep 10 && neomodel_install_labels AFIRdb AFIRdb.graph --db bolt://neo4j:afirdb@localhost:7687 && service neo4j stop
 # setup MarvinJS
 COPY mjs /usr/local/lib/python3.6/dist-packages/AFIRdb/wui/assets/mjs
+COPY AFIRdb/wui/assets/* /usr/local/lib/python3.6/dist-packages/AFIRdb/wui/assets/
 COPY boot.sh /opt/boot
 
 #VOLUME ["/var/log/postgresql", "/var/lib/postgresql"]
-EXPOSE 5000
+EXPOSE 5000 7474 5432 7687
 
 ENTRYPOINT ["/opt/boot"]
