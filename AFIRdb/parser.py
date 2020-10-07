@@ -26,6 +26,9 @@ xyz = XYZRead(StringIO()).parse
 
 
 def log_parser(file) -> Iterator[ReactionContainer]:
+    """
+    Check for header matching or raise error, returns parser
+    """
     line = next(file)
     if line.startswith("Update the reaction path"):
         return pt_parser(file)
@@ -34,6 +37,12 @@ def log_parser(file) -> Iterator[ReactionContainer]:
 
 
 def pt_parser(file):
+    """
+        parser to work with specified file
+    :return  tuple of 2 reaction containers. Each container consist of reactant(initaial state - mol container),
+        product(final state - mol container), reagent(transition state - mol container). Each of mol containers
+        should have {"energy":float} in meta dictionary.
+    """
     pts = []
     tmp = []
     flag = False
