@@ -68,7 +68,8 @@ class M_and_B(Mapping,Barrier):
 
 class Brutto(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     """
-    Unique index of systems
+    Node type for the Neo4j
+    Unique index of systems defined by empirical formula
     """
     brutto = StringProperty(unique_index=True, required=True)
     name = StringProperty()
@@ -94,6 +95,7 @@ class Brutto(Mixin, StructuredNode, metaclass=ExtNodeMeta):
 
 class Molecule(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     """
+    Node type for NEO4j
     Mapping of CGRdb Molecule into graph
     """
     cgrdb = IntegerProperty(unique_index=True, required=True)
@@ -217,7 +219,6 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 if not self.equilibrium_states.is_connected(e):  # only new ES need connection from complex.
                     self.equilibrium_states.connect(e, {'mapping_json': next(structure.get_mapping(self.structure))})
             else:  # new complex. store relations into CGRdb and Brutto
-                #self.energy = se
                 self.brutto.connect(Brutto(structure))
                 # create mapping into molecules
                 for s in structure.split():
@@ -234,10 +235,7 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     def get_effective_paths(self, target: 'Complex', limit: int = 10):
         if not limit:
             raise ValueError('limit should be positive')
-        # res = islice(self.search_path(target), limit)
         paths = []
-        # cache = {}
-
         for n, path in enumerate(self.search_path(target, limit)):
             nodes = []
             costs = []
