@@ -175,6 +175,8 @@ class Molecule(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 costs.append(barrier) if i % 2 == 0 else costs.append(0)
                 total += costs[-1]
             paths.append(weighted_path(nodes, costs, total))
+            if n == 30:
+                return paths
         #print(paths)
         return paths
 
@@ -245,6 +247,8 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 costs.append(barrier) if i % 2 == 0 else costs.append(0)
                 total += costs[-1]
             paths.append(weighted_path(nodes, costs, total))
+            if n == 30:
+                return paths
         #print(paths)
         return paths
 

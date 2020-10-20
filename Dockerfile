@@ -3,7 +3,7 @@ FROM ubuntu:18.04
 ENV DEBIAN_FRONTEND noninteractive
 
 # prepare system
-RUN apt-get update && apt-get install wget git build-essential python3-dev python3-pip software-properties-common \
+RUN apt-get update && apt-get install wget git build-essential python3.6 python3.6-dev python3-pip software-properties-common \
     openjdk-11-jre postgresql-server-dev-10 postgresql-plpython3-10 ca-certificates -y
 
 RUN wget -qO key "https://debian.neo4j.com/neotechnology.gpg.key"
@@ -30,15 +30,20 @@ USER root
 RUN neo4j-admin set-initial-password 'afirdb'
 
 # install CGRdb
+RUN pip3 install -U pip
 RUN git clone https://github.com/stsouko/smlar.git && \
     cd smlar && USE_PGXS=1 make && USE_PGXS=1 make install && cd .. & rm -rf smlar && \
-    pip3 install numba dash-uploader compress-pickle git+https://github.com/cimm-kzn/CGRtools.git@master#egg=CGRtools[clean2djit,MRV] \
+    pip3 install -U numpy numba compress-pickle
+RUN pip3 install -U dash-uploader git+https://github.com/cimm-kzn/CGRtools.git@master#egg=CGRtools[clean2djit,MRV] \
     git+https://github.com/stsouko/CIMtools.git@master#egg=CIMtools \
     git+https://github.com/stsouko/CGRdb.git@master#egg=CGRdb[postgres]
 
 # setup CGRdb
 COPY config.json config.json
-RUN service postgresql start && cgrdb init -p afirdb && cgrdb create -p afirdb --name reactions --config config.json && rm config.json
+RUN service postgresql start &&\
+ cgrdb init  -c '{"user":"postgres","password":"afirdb","host":"localhost"}' &&\
+ cgrdb create -n "reactions" -f config.json -c '{"user":"postgres","password":"afirdb","host":"localhost"}' &&\
+ rm config.json
 
 # install AFIRdb
 COPY AFIRdb tmp/AFIRdb
