@@ -2,7 +2,7 @@
 #
 #  Copyright 2020 Ramil Nugmanov <nougmanoff@protonmail.com>
 #  Copyright 2020 Timur Gimadiev <timur.gimadiev@gmail.com>
-#  This file is part of AFIRdb.
+#  This file is part of RePathDB.
 #
 #  AFIRdb is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published by
