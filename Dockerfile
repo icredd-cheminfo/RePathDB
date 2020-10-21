@@ -46,7 +46,7 @@ RUN service postgresql start &&\
  rm config.json
 
 # install AFIRdb
-COPY AFIRdb tmp/AFIRdb
+COPY RePathDB tmp/AFIRdb
 COPY setup.py tmp/setup.py
 COPY README.md tmp/README.md
 COPY mol3d_dash-0.0.1-py3-none-any.whl tmp/mol3d_dash-0.0.1-py3-none-any.whl
@@ -57,7 +57,7 @@ RUN cd tmp && pip3 install . && rm -rf AFIRdb setup.py README.md && cd ..
 RUN service neo4j start && sleep 10 && neomodel_install_labels AFIRdb AFIRdb.graph --db bolt://neo4j:afirdb@localhost:7687 && service neo4j stop
 # setup MarvinJS
 COPY mjs /usr/local/lib/python3.6/dist-packages/AFIRdb/wui/assets/mjs
-COPY AFIRdb/wui/assets/* /usr/local/lib/python3.6/dist-packages/AFIRdb/wui/assets/
+COPY RePathDB /usr/local/lib/python3.6/dist-packages/AFIRdb/wui/assets/
 COPY boot.sh /opt/boot
 
 #VOLUME ["/var/log/postgresql", "/var/lib/postgresql"]
