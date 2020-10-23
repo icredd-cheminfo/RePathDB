@@ -27,7 +27,7 @@ RUN /etc/init.d/postgresql start && \
 USER root
 
 # setup neo4j
-RUN neo4j-admin set-initial-password 'afirdb'
+RUN neo4j-admin set-initial-password 'repathdb'
 
 # install CGRdb
 RUN pip3 install -U pip
@@ -41,23 +41,24 @@ RUN pip3 install -U dash-uploader git+https://github.com/cimm-kzn/CGRtools.git@m
 # setup CGRdb
 COPY config.json config.json
 RUN service postgresql start &&\
- cgrdb init  -c '{"user":"postgres","password":"afirdb","host":"localhost"}' &&\
- cgrdb create -n "reactions" -f config.json -c '{"user":"postgres","password":"afirdb","host":"localhost"}' &&\
+ cgrdb init  -c '{"user":"postgres","password":"repathdb","host":"localhost"}' &&\
+ cgrdb create -n "reactions" -f config.json -c '{"user":"postgres","password":"repathdb","host":"localhost"}' &&\
  rm config.json
 
 # install AFIRdb
-COPY RePathDB tmp/AFIRdb
+COPY RePathDB tmp/RePathDB
 COPY setup.py tmp/setup.py
 COPY README.md tmp/README.md
 COPY mol3d_dash-0.0.1-py3-none-any.whl tmp/mol3d_dash-0.0.1-py3-none-any.whl
 COPY dash_network-0.0.1-py3-none-any.whl tmp/dash_network-0.0.1-py3-none-any.whl
 RUN pip3 install /tmp/mol3d_dash-0.0.1-py3-none-any.whl && rm tmp/mol3d_dash-0.0.1-py3-none-any.whl
 RUN pip3 install /tmp/dash_network-0.0.1-py3-none-any.whl && rm tmp/dash_network-0.0.1-py3-none-any.whl
-RUN cd tmp && pip3 install . && rm -rf AFIRdb setup.py README.md && cd ..
-RUN service neo4j start && sleep 10 && neomodel_install_labels AFIRdb AFIRdb.graph --db bolt://neo4j:afirdb@localhost:7687 && service neo4j stop
+RUN cd tmp && pip3 install . && rm -rf RePathDB setup.py README.md && cd ..
+RUN service neo4j start && sleep 10 && neomodel_install_labels RePathDB RePathDB.graph --db bolt://neo4j:repathdb@localhost:7687 && service neo4j stop
 # setup MarvinJS
-COPY mjs /usr/local/lib/python3.6/dist-packages/AFIRdb/wui/assets/mjs
-COPY RePathDB /usr/local/lib/python3.6/dist-packages/AFIRdb/wui/assets/
+COPY mjs /usr/local/lib/python3.6/dist-packages/RePathDB/wui/assets/mjs
+COPY RePathDB /usr/local/lib/python3.6/dist-packages/RePathDBb/wui/assets/
+COPY RePathDB/wui/assets/*.png /usr/local/lib/python3.6/dist-packages/RePathDB/wui/assets/
 COPY boot.sh /opt/boot
 
 #VOLUME ["/var/log/postgresql", "/var/lib/postgresql"]

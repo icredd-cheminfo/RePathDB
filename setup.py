@@ -22,20 +22,22 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 
-version = '1.0.2_dev4'
+version = '1.0.2'
 
 
 setup(
-    name='AFIRdb',
+    name='RePathDB',
     version=version,
     packages=find_packages(),
-    url='https://github.com/TimurGimadiev/AFIRdb',
+    url='https://github.com/icredd-cheminfo/RePathDB',
     license='LGPLv3',
     author='Dr. Timur Gimadiev',
     author_email='timur.gimadiev@gmail.com',
     python_requires='>=3.6.0',
-    install_requires=['CGRdb>=4.0.0,<4.1', 'neomodel>=3.3.2', 'dash', 'dash_marvinjs', 'mol3d_dash', 'plotly','dash_network'],
-    long_description=(Path(__file__).parent / 'README.md').open().read(),
+    install_requires=['CGRtools @ git+https://github.com/cimm-kzn/CGRtools.git@master#egg=CGRtools[mrv,clean2djit]',
+                      'CGRdb @ git+https://github.com/stsouko/CGRdb.git@master#egg=CGRdb[postgres]',
+                      'neomodel>=3.3.2', 'dash', 'dash_marvinjs', 'mol3d_dash', 'plotly', 'dash_network',
+                      'dash_uploader','lxml>=4.1'],
     classifiers=['Environment :: Plugins',
                  'Intended Audience :: Science/Research',
                  'Intended Audience :: Developers',
