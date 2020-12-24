@@ -26,6 +26,7 @@ from dash_table import DataTable
 from mol3d_dash import Mol3dDash
 from dash_network import Network
 
+
 reactant_color = '#8fbff2'
 product_color = '#fcca95'
 molecule_color = 'blue'
@@ -99,153 +100,77 @@ Clicking on any node will show the 2D structure of related complex.
 
 UPLOAD_FOLDER_ROOT = "/tmp/"
 
-def get_layout(app):
 
-    configure_upload(
-        app,
-        UPLOAD_FOLDER_ROOT,
-        upload_api="/API/dash-upload",
-    )
+def get_layout(app):
+    configure_upload(app, UPLOAD_FOLDER_ROOT, upload_api="/API/dash-upload", )
 
     row_0 = Div([H2("Upload to Database (log files)", style={'textAlign': 'left'}),
-                 Div([
-                     Upload(id="file_upload",
-                            text='Drag and Drop files here',
-                            text_completed='''Download completed
-                                              Parsing started''',
-                            cancel_button=True,
-                            max_file_size=1800,  # 1800 Mb
-                            filetypes=['zip'],
-                            upload_id=uuid.uuid1(),  # Unique session id
-                            ),
-                     Loading(id='file_upload-output', children=[])
-                     ])
-    ])
-    row_1 = Div([
-                Div([
-                    DashMarvinJS(id='editor', marvin_url=app.get_asset_url('mjs/editor.html'), marvin_width='100%')
-            ], className='col-md-6'),
-                Div([
-                    Markdown(readme)
-                ], style={"maxHeight": "400px", "overflow": "scroll"}, className='col-md-6')
-            ], className='row')
-    row_2 =Div([
-        Div([DataTable(id='table', columns=[#{'name': 'Reactant', 'id': 'reactant', 'color': reactant_color},
-                                            #{'name': 'Product', 'id': 'product', 'color': product_color},
-                                            {'name': 'Reactant molecule SMILES', 'id': 'reactant_structure'},
-                                            {'name': 'Product molecule SMILES', 'id': 'product_structure'}],
-                       fixed_rows={'headers': True, 'data': 0},
-                       row_selectable='single',
-                       style_data={
-                           'whiteSpace': 'normal',
-                           'height': 'auto'},
-                       style_table={'maxHeight': '300px', 'overflowY': 'hidden','overflowX':'hidden'},
-                       #hidden_columns=['reactant', 'product'],
-                       style_cell={'textAlign': 'left'},
-                       style_as_list_view=True,
-                       style_cell_conditional=[{
-                           'if': {'column_id': 'reactant_structure'},
-                           'backgroundColor': reactant_color,
-                           'width': '47%'
-                       },
-                           {
-                           'if': {'column_id': 'product_structure'},
-                           'backgroundColor': product_color,
-                           'width': '47%'
-                           }
-                       ]),
+                 Div([Upload(id="file_upload", text='Drag and Drop files here', text_completed='''Download completed
+                                              Parsing started''', cancel_button=True, max_file_size=1800,  # 1800 Mb
+                             filetypes=['zip'], upload_id=uuid.uuid1(),  # Unique session id
+                             ), Loading(id='file_upload-output', children=[])])])
+    row_1 = Div([Div([DashMarvinJS(id='editor', marvin_url=app.get_asset_url('mjs/editor.html'), marvin_width='100%')],
+                     className='col-md-6'),
+                 Div([Markdown(readme)], style={"maxHeight": "400px", "overflow": "scroll"}, className='col-md-6')],
+                className='row')
+    row_2 = Div(
+            [Div([DataTable(id='table', columns=[  # {'name': 'Reactant', 'id': 'reactant', 'color': reactant_color},
+                    # {'name': 'Product', 'id': 'product', 'color': product_color},
+                    {'name': 'Reactant molecule SMILES', 'id': 'reactant_structure'},
+                    {'name': 'Product molecule SMILES', 'id': 'product_structure'}],
+                            fixed_rows={'headers': True, 'data': 0}, row_selectable='single',
+                            style_data={'whiteSpace': 'normal', 'height': 'auto'},
+                            style_table={'maxHeight': '300px', 'overflowY': 'hidden', 'overflowX': 'hidden'},
+                            # hidden_columns=['reactant', 'product'],
+                            style_cell={'textAlign': 'left'}, style_as_list_view=True, style_cell_conditional=[
+                        {'if': {'column_id': 'reactant_structure'}, 'backgroundColor': reactant_color, 'width': '47%'},
+                        {'if': {'column_id': 'product_structure'}, 'backgroundColor': product_color, 'width': '47%'}]),
 
-             ], className='col-6'),
+                  ], className='col-6'),
 
-        Div([DataTable(id='table2', columns=[  # {'name': 'Reactant', 'id': 'reactant', 'color': reactant_color},
-                                                 # {'name': 'Product', 'id': 'product', 'color': product_color},
-                                                 {'name': 'Reactant complex SMILES', 'id': 'reactant_structure'},
-                                                 {'name': 'Product complex SMILES', 'id': 'product_structure'}],
-                       fixed_rows={'headers': True, 'data': 0},
-                       row_selectable='single',
-                       style_data={
-                           'whiteSpace': 'normal',
-                           'height': 'auto'},
-                       style_table={'maxHeight': '300px', 'overflowY': 'scroll', 'overflowX': 'hidden'},
-                       # hidden_columns=['reactant', 'product'],
-                       style_cell={'textAlign': 'left'},
-                       style_as_list_view=True,
-                       style_cell_conditional=[{
-                           'if': {'column_id': 'reactant_structure'},
-                           'backgroundColor': reactant_color,
-                           'width': '47%'
-                       },
-                           {
-                           'if': {'column_id': 'product_structure'},
-                           'backgroundColor': product_color,
-                           'width': '47%'
-                           }
-                       ]),
+             Div([DataTable(id='table2', columns=[  # {'name': 'Reactant', 'id': 'reactant', 'color': reactant_color},
+                     # {'name': 'Product', 'id': 'product', 'color': product_color},
+                     {'name': 'Reactant complex SMILES', 'id': 'reactant_structure'},
+                     {'name': 'Product complex SMILES', 'id': 'product_structure'}],
+                            fixed_rows={'headers': True, 'data': 0}, row_selectable='single',
+                            style_data={'whiteSpace': 'normal', 'height': 'auto'},
+                            style_table={'maxHeight': '300px', 'overflowY': 'scroll', 'overflowX': 'hidden'},
+                            # hidden_columns=['reactant', 'product'],
+                            style_cell={'textAlign': 'left'}, style_as_list_view=True, style_cell_conditional=[
+                         {'if': {'column_id': 'reactant_structure'}, 'backgroundColor': reactant_color, 'width': '47%'},
+                         {'if': {'column_id': 'product_structure'}, 'backgroundColor': product_color, 'width': '47%'}]),
 
-                  ], className='col-6')
-             ], className='row')
+                  ], className='col-6')], className='row')
 
-    row_2_2 = Div([
-        H2("Molecules structure", style={'textAlign': 'center'}),
-        Hr(),
-        Div([
+    row_2_2 = Div([H2("Molecules structure", style={'textAlign': 'center'}), Hr(), Div([
             Img(src='', id='reagent_img', width="50%", height="100%",
-                           style={'backgroundColor': reactant_color, 'maxHeight': '200px'}),
+                style={'backgroundColor': reactant_color, 'maxHeight': '200px'}),
             Img(src='', id='product_img', width="50%", height="100%",
-                           style={'backgroundColor': product_color, 'maxHeight': '200px'})
-                  ], className='row'),
-        H2("Complexes structure", style={'textAlign': 'center'}),
-        Hr(),
-        Div([
-            Img(src='', id='reagent_img2', width="50%", height="100%",
-                      style={'backgroundColor': reactant_color, 'maxHeight': '200px'}),
-            Img(src='', id='product_img2', width="50%", height="100%",
-                      style={'backgroundColor': product_color, 'maxHeight': '200px'})], className='row')
-    ])
+                style={'backgroundColor': product_color, 'maxHeight': '200px'})], className='row'),
+                   H2("Complexes structure", style={'textAlign': 'center'}), Hr(), Div([
+                    Img(src='', id='reagent_img2', width="50%", height="100%",
+                        style={'backgroundColor': reactant_color, 'maxHeight': '200px'}),
+                    Img(src='', id='product_img2', width="50%", height="100%",
+                        style={'backgroundColor': product_color, 'maxHeight': '200px'})], className='row')])
 
     row_3 = Div([DataTable(id='table3', columns=[  # {'name': 'Reactant', 'id': 'reactant', 'color': reactant_color},
-                                                  {'name': 'EmpiricalFormula', 'id': 'brutto'},
-                                                 {'name': 'Reactions in path', 'id': 'len'},
-                                                {'name': 'Sum of barriers', 'id': 'energy'}],
-                       fixed_rows={'headers': True, 'data': 0},
-                       row_selectable='single',
-                       style_data={
-                           'whiteSpace': 'normal',
-                           'height': 'auto'},
-                       style_table={'maxHeight': '300px', 'overflowY': 'scroll', 'overflowX': 'hidden'},
-                       # hidden_columns=['reactant', 'product'],
-                       style_cell={'textAlign': 'left'},
-                       style_as_list_view=True,
-                       style_cell_conditional=[{
-                           'if': {'column_id': 'brutto'},
-                           'width': '50%'
-                            },
-                           {
-                               'if': {'column_id': 'len'},
-                               'width': '20%'
-                           },
-                           {
-                               'if': {'column_id': 'energy'},
-                               'width': '20%'
-                           }
-                       ]
-                        ),
-                Hr(),
-                Div([Div([Graph(id='paths-graph')], className='col-md-8'),
-                    Div([Mol3dDash(id='structure')], className='col-md-4')],  style={'min-height': '400px'},
-                            className='row col-12')
-            ])
-    row_4 = Div([Network(
-                    id='net',
-                    width=1000,
-                    height=1000,
-                    data={'nodes': [],
-                          'links': []
-                    }),
-                Img(src='', id='net_img', width="30%", height="100%",
-                        style={'maxHeight': '200px'}),
-    ], className='row')
+            {'name': 'EmpiricalFormula', 'id': 'brutto'}, {'name': 'Reactions in path', 'id': 'len'},
+            {'name': 'Sum of barriers', 'id': 'energy'}], fixed_rows={'headers': True, 'data': 0},
+                           row_selectable='single', style_data={'whiteSpace': 'normal', 'height': 'auto'},
+                           style_table={'maxHeight': '300px', 'overflowY': 'scroll', 'overflowX': 'hidden'},
+                           # hidden_columns=['reactant', 'product'],
+                           style_cell={'textAlign': 'left'}, style_as_list_view=True,
+                           style_cell_conditional=[{'if': {'column_id': 'brutto'}, 'width': '50%'},
+                                                   {'if': {'column_id': 'len'}, 'width': '20%'},
+                                                   {'if': {'column_id': 'energy'}, 'width': '20%'}]), Hr(), Div(
+            [Div([Graph(id='paths-graph')], className='col-md-8'),
+             Div([Mol3dDash(id='structure')], className='col-md-4')], style={'min-height': '400px'},
+            className='row col-12')])
+    row_4 = Div([Network(id='net', width=1000, height=1000, data={'nodes': [], 'links': []}),
+                 Img(src='', id='net_img', width="30%", height="100%", style={'maxHeight': '200px'}), ],
+                className='row')
 
-    layout = Div([H1("AFIR DB graphical user interface", style={'textAlign': 'center'}), row_0, Hr(),
-                  row_1, Hr(), row_2, Hr(), row_2_2, Hr(), row_3, Hr(), row_4])
+    layout = Div(
+            [H1("AFIR DB graphical user interface", style={'textAlign': 'center'}), row_0, Hr(), row_1, Hr(), row_2,
+             Hr(), row_2_2, Hr(), row_3, Hr(), row_4])
     return layout

@@ -44,6 +44,7 @@ def load_data(files, suffix):
         Reaction(backward)
         print(f'processed: {f}')
 
+
 def load_one_file(file):
     """
     method for web interface data upload only one file. not used
@@ -62,7 +63,8 @@ def load_one_file(file):
     print(f'processed: {file}')
     return "good"
 
-def load_data_remotely(files): # old method for dash upload
+
+def load_data_remotely(files):  # old method for dash upload
     divs = []
     good = 0
     bad = 0
@@ -80,10 +82,9 @@ def load_data_remotely(files): # old method for dash upload
         print(f'processed: {n}')
         good += 1
     else:
-        divs.append(Div([
-            '{} log files were processed and added to database, {} files were not processed due to errors,'
-            ' not log files are omitted and were not taken into account'.format(good, bad)
-        ]))
+        divs.append(Div(['{} log files were processed and added to database, {} files were not processed due to errors,'
+                         ' not log files are omitted and were not taken into account'.format(good, bad)]))
     return divs
+
 
 __all__ = ['load_data']

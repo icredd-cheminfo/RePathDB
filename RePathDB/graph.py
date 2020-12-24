@@ -29,6 +29,7 @@ from itertools import count
 from itertools import islice
 from heapq import heappush, heappop
 
+
 weighted_path = namedtuple('WeightedPath', ['nodes', 'cost', 'total_cost'])
 
 
@@ -64,8 +65,10 @@ class Mapping(StructuredRel):
     def mapping(self):
         return {int(k): v for k, v in self.mapping_json.items()}
 
-class M_and_B(Mapping,Barrier):
+
+class M_and_B(Mapping, Barrier):
     pass
+
 
 class Brutto(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     """
@@ -140,7 +143,7 @@ class Molecule(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 old_len = len(init_path)
             cur_len = len(init_path) + 1 < max_len
             for i, r in enumerate(cur.reactant.all()):
-                barrier = (r.energy - cur.energy) #* 627.51 have not yet decided which units
+                barrier = (r.energy - cur.energy)  # * 627.51 have not yet decided which units
                 # barrier = barrier if barrier > prev_barrier else prev_barrier
                 prod = r.product.all()[0]
                 if prod in final_compl:
@@ -161,13 +164,11 @@ class Molecule(Mixin, StructuredNode, metaclass=ExtNodeMeta):
         return bool(next(self.search_path(target), False))
 
     def get_effective_paths(self, target: 'Molecule', limit: int = 10):
-        if not limit:
+        if limit <= 0:
             raise ValueError('limit should be positive')
-        #res = islice(self.search_path(target), limit)
-        paths = []
-        #cache = {}
 
-        for n, path in enumerate(self.search_path(target, limit)):
+        paths = []
+        for path in islice(self.search_path(target, limit), 30):
             nodes = []
             costs = []
             total = 0
@@ -176,9 +177,6 @@ class Molecule(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 costs.append(barrier) if i % 2 == 0 else costs.append(0)
                 total += costs[-1]
             paths.append(weighted_path(nodes, costs, total))
-            if n == 30:
-                return paths
-        #print(paths)
         return paths
 
     @property
@@ -234,7 +232,6 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
         else:
             super().__init__(**kwargs)
 
-
     def get_effective_paths(self, target: 'Complex', limit: int = 10):
         if not limit:
             raise ValueError('limit should be positive')
@@ -250,9 +247,7 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
             paths.append(weighted_path(nodes, costs, total))
             if n == 30:
                 return paths
-        #print(paths)
         return paths
-
 
     def search_path(self, target: 'Complex', max_len=10):
         seen = set()
@@ -277,7 +272,7 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 old_len = len(init_path)
             cur_len = len(init_path) + 1 < max_len
             for i, r in enumerate(cur.reactant.all()):
-                barrier = (r.energy - cur.energy) #* 627.51
+                barrier = (r.energy - cur.energy)  # * 627.51
                 # barrier = barrier if barrier > prev_barrier else prev_barrier
                 prod = r.product.all()[0]
                 if prod in final_compl:
@@ -329,7 +324,7 @@ class EquilibriumState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
             energy = structure.meta['energy']
             signature = [None] * len(structure)
             for n, m in structure.atoms_order.items():
-                signature[m-1] = [round(x, 4) for x in xyz[n]]
+                signature[m - 1] = [round(x, 4) for x in xyz[n]]
             signature = str(signature)
             super().__init__(xyz_json=xyz, energy=energy, signature=signature)
             try:
@@ -342,42 +337,6 @@ class EquilibriumState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     @property
     def xyz(self):
         return {int(k): tuple(v) for k, v in self.xyz_json.items()}
-
-
-class Disabled:
-    def has_path(self, target: 'Molecule'):
-        if target.id == self.id:
-            return False
-        q = f'''MATCH 
-                shortestPath((n:Molecule{{cgrdb:{self.cgrdb}}})-[:C2R|Reaction|:R2C*..]->(m:Molecule{{cgrdb:{target.cgrdb}}}))
-                RETURN 1 AS found'''
-        return bool(self.cypher(q)[0])
-
-    def get_effective_paths(self, target: 'Molecule', limit: int = 1):
-        if not limit:
-            raise ValueError('limit should be positive')
-        q = f'''MATCH (s:Molecule{{cgrdb:{self.cgrdb}}}), (f:Molecule{{cgrdb:{target.cgrdb}}})
-                CALL algo.kShortestPaths.stream(s, f, {limit}, null,
-                  {{
-                     nodeQuery:'MATCH (n) WHERE n:Molecule OR n:Reaction RETURN id(n) as id',
-                     relationshipQuery:'MATCH (n:Molecule)-[:C2R]->(r:Reaction)
-                                        RETURN id(n) as source, id(r) as target, r.energy as weight
-                                        UNION
-                                        MATCH (r:Reaction)-[:R2C]->(n:Molecule)
-                                        RETURN id(r) as source, id(n) as target, 0 as weight',
-                     direction:'OUT',
-                     graph:'cypher'
-                   }}
-                 )
-                YIELD index, nodeIds, costs
-                RETURN nodeIds AS path, costs, reduce(acc = 0.0, cost in costs | acc + cost) AS total_cost'''
-        paths = []
-        cache = {}
-        for nodes, costs, total in self.cypher(q)[0]:
-            nodes = tuple(cache.get(n) or cache.setdefault(n, (Reaction if i % 2 else Complex).get(n))
-                          for i, n in enumerate(nodes))
-            paths.append(weighted_path(nodes, costs, total))
-        return paths
 
 
 class Reaction(Mixin, StructuredNode, metaclass=ExtNodeMeta):
@@ -423,13 +382,13 @@ class Reaction(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                     ts.equilibrium_states.connect(pe, {'energy': te - pe.energy})
             else:  # new reaction
                 # store relation to Brutto
-                #self.energy = te
+                # self.energy = te
                 self.brutto.connect(Brutto(t))
                 # connect reactant and product complexes. todo: possible optimization of mapping
                 rc = Complex(r)
                 pc = Complex(p)
-                self.reactant.connect(rc, {'mapping_json': next(rc.structure.get_mapping(r)), 'energy': te-rc.energy})
-                self.product.connect(pc, {'mapping_json': next(pc.structure.get_mapping(p)), 'energy': te-pc.energy})
+                self.reactant.connect(rc, {'mapping_json': next(rc.structure.get_mapping(r)), 'energy': te - rc.energy})
+                self.product.connect(pc, {'mapping_json': next(pc.structure.get_mapping(p)), 'energy': te - pc.energy})
 
                 # connect TS to R
                 ts = TransitionState(t)
@@ -489,5 +448,6 @@ class TransitionState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     @property
     def xyz(self):
         return {int(k): tuple(v) for k, v in self.xyz_json.items()}
+
 
 __all__ = ['Molecule', 'Reaction', 'EquilibriumState', 'TransitionState', 'Barrier', 'Mapping', 'Complex', 'Brutto']
