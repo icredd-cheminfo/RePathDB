@@ -23,7 +23,7 @@ RUN echo "PATH = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'"
 USER postgres
 RUN /etc/init.d/postgresql start && \
     psql --command "CREATE SCHEMA reactions;" && \
-    psql --command "ALTER USER postgres WITH PASSWORD 'afirdb';"
+    psql --command "ALTER USER postgres WITH PASSWORD 'repathdb';"
 USER root
 
 # setup neo4j
@@ -34,9 +34,9 @@ RUN pip3 install -U pip
 RUN git clone https://github.com/stsouko/smlar.git && \
     cd smlar && USE_PGXS=1 make && USE_PGXS=1 make install && cd .. & rm -rf smlar && \
     pip3 install -U numpy numba compress-pickle
-RUN pip3 install -U dash-uploader git+https://github.com/cimm-kzn/CGRtools.git@master#egg=CGRtools[clean2djit,MRV] \
-    git+https://github.com/stsouko/CIMtools.git@master#egg=CIMtools \
-    git+https://github.com/stsouko/CGRdb.git@master#egg=CGRdb[postgres]
+RUN pip3 install -U dash-uploader  \
+    git+https://github.com/cimm-kzn/CIMtools.git@master#egg=CIMtools \
+    git+https://github.com/stsouko/CGRdb.git@master#egg=CGRdb[postgres] cgrtools[clean2djit,MRV]
 
 # setup CGRdb
 COPY config.json config.json

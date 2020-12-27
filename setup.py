@@ -34,7 +34,7 @@ setup(
     author='Dr. Timur Gimadiev',
     author_email='timur.gimadiev@gmail.com',
     python_requires='>=3.6.0',
-    install_requires=['CGRtools @ git+https://github.com/cimm-kzn/CGRtools.git@master#egg=CGRtools[mrv,clean2djit]',
+    install_requires=['cgrtools[mrv,clean2djit]',
                       'CGRdb @ git+https://github.com/stsouko/CGRdb.git@master#egg=CGRdb[postgres]',
                       'neomodel>=3.3.2', 'dash', 'dash_marvinjs', 'mol3d_dash', 'plotly', 'dash_network',
                       'dash_uploader','lxml>=4.1'],

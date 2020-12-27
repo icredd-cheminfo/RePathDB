@@ -35,7 +35,7 @@ reaction_color = 'red'
 readme = '''
 # Instructions
 
-### AFIR DB GUI
+### RePath DB GUI
 The Graphical User Interface consists of four main sections:
 
   * Query preparation
@@ -90,7 +90,7 @@ The nodes are Complexes, and the edges are Reactions. The Complexes involved in 
 according to the same color scheme. Clicking on any node will show the 2D structure of the complex (top right here)
 and make the node larger to indicate it was selected.
  
-Ensemble of species generated in a given AFIR run can be represented as a full graph in which the nodes are Complexes, 
+Ensemble of species generated in a given reaction path exploration run can be represented as a full graph in which the nodes are Complexes, 
 and the edges are Reactions. The Complexes involved in previously selected pathway are colored as on the Pathway diagram.
 Clicking on any node will show the 2D structure of related complex. 
 
@@ -171,6 +171,6 @@ def get_layout(app):
                 className='row')
 
     layout = Div(
-            [H1("AFIR DB graphical user interface", style={'textAlign': 'center'}), row_0, Hr(), row_1, Hr(), row_2,
+            [H1("RePath DB graphical user interface", style={'textAlign': 'center'}), row_0, Hr(), row_1, Hr(), row_2,
              Hr(), row_2_2, Hr(), row_3, Hr(), row_4])
     return layout
