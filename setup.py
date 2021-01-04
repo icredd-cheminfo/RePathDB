@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-#  Copyright 2020 Ramil Nugmanov <nougmanoff@protonmail.com>
-#  Copyright 2020 Timur Gimadiev <timur.gimadiev@gmail.com>
+#  Copyright 2020, 2021 Ramil Nugmanov <nougmanoff@protonmail.com>
+#  Copyright 2020, 2021 Timur Gimadiev <timur.gimadiev@gmail.com>
 #  This file is part of RePathDB.
 #
 #  AFIRdb is free software; you can redistribute it and/or modify
@@ -35,9 +35,10 @@ setup(
     author_email='timur.gimadiev@gmail.com',
     python_requires='>=3.6.0',
     install_requires=['cgrtools[mrv,clean2djit]',
-                      'CGRdb @ git+https://github.com/stsouko/CGRdb.git@master#egg=CGRdb[postgres]',
-                      'neomodel>=3.3.2', 'dash', 'dash_marvinjs', 'mol3d_dash', 'plotly', 'dash_network',
-                      'dash_uploader','lxml>=4.1'],
+                      'CGRdb @ git+https://github.com/stsouko/CGRdb.git@4.0#egg=CGRdb',
+                      'neomodel>=3.3.2', 'dash', 'dash-marvinjs', 'mol3d-dash', 'plotly', 'dash-network',
+                      'dash-uploader'],
+    long_description=(Path(__file__).parent / 'README.md').read_text(),
     classifiers=['Environment :: Plugins',
                  'Intended Audience :: Science/Research',
                  'Intended Audience :: Developers',

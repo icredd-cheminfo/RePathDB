@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-#  Copyright 2020 Ramil Nugmanov <nougmanoff@protonmail.com>
-#  Copyright 2020 Timur Gimadiev <timur.gimadiev@gmail.com>
+#  Copyright 2020, 2021 Ramil Nugmanov <nougmanoff@protonmail.com>
+#  Copyright 2020, 2021 Timur Gimadiev <timur.gimadiev@gmail.com>
 #  This file is part of RePathDB.
 #
 #  AFIRdb is free software; you can redistribute it and/or modify
@@ -19,6 +19,7 @@
 #
 from CGRdb import Molecule as pMolecule
 from CGRtools import MoleculeContainer, ReactionContainer
+from CGRtools.algorithms.x3dom import JupyterWidget
 from collections import namedtuple, Counter
 from functools import reduce
 from neomodel import (StructuredNode, StructuredRel, IntegerProperty, FloatProperty, JSONProperty, RelationshipTo,
@@ -302,6 +303,23 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
         s.clean2d()
         return s.depict()
 
+    def depict3d(self, index: int = 0) -> str:
+        s = self.structure
+        es = self.equilibrium_states.all()[index]
+        mapping = self.equilibrium_states.relationship(es).mapping
+        s._conformers.append({mapping[n]: v for n, v in es.xyz.items()})
+        return s.depict3d()
+
+    def view3d(self, index: int = 0, width='600px', height='400px'):
+        """
+        Jupyter widget for 3D visualization.
+
+        :param index: index of conformer
+        :param width: widget width
+        :param height: widget height
+        """
+        return JupyterWidget(self.depict3d(index), width, height)
+
     def _repr_svg_(self):
         return self.depict()
 
@@ -414,6 +432,23 @@ class Reaction(Mixin, StructuredNode, metaclass=ExtNodeMeta):
         s = self.structure
         s.clean2d()
         return s.depict()
+
+    def depict3d(self, index: int = 0) -> str:
+        s = self.structure
+        ts = self.transition_states.all()[index]
+        mapping = self.transition_states.relationship(ts).mapping
+        s._conformers.append({mapping[n]: v for n, v in ts.xyz.items()})
+        return s.depict3d(index)
+
+    def view3d(self, index: int = 0, width='600px', height='400px'):
+        """
+        Jupyter widget for 3D visualization.
+
+        :param index: index of conformer
+        :param width: widget width
+        :param height: widget height
+        """
+        return JupyterWidget(self.depict3d(index), width, height)
 
     def _repr_svg_(self):
         return self.depict()
