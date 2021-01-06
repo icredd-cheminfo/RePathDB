@@ -32,7 +32,7 @@ Then run pip install -e .  in the folder of the project
 USAGE
 =====
 
-    python -m AFIRdb cmd
+    python -m RePathDB cmd
 #initialization of CGRDB  
     cgrdb init  -c '{"user":"your postgres user name","password":"your password","host":"host ip"}'
 

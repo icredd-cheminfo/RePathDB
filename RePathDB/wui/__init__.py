@@ -4,7 +4,7 @@
 #  Copyright 2020 Timur Gimadiev <timur.gimadiev@gmail.com>
 #  This file is part of RePathDB.
 #
-#  AFIRdb is free software; you can redistribute it and/or modify
+#  RePathDB is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published by
 #  the Free Software Foundation; either version 3 of the License, or
 #  (at your option) any later version.
@@ -50,7 +50,7 @@ def svg2html(svg):
 
 
 dash = Dash(__name__, external_stylesheets=external_stylesheets, external_scripts=external_scripts)
-dash.title = 'AFIRdb'
+dash.title = 'RePathDB'
 dash.layout = get_layout(dash)
 dash.server.secret_key = getenv('SECRET_KEY', 'development')
 
@@ -289,7 +289,7 @@ def get_files(iscompleted, filenames, upload_id):
 def get_picture(name):
     if name is not None:
         encoded_image = b64encode(
-            open("/usr/local/lib/python3.6/dist-packages/AFIRdb/wui" + dash.get_asset_url(name), 'rb').read())
+            open("/usr/local/lib/python3.6/dist-packages/RePathDB/wui" + dash.get_asset_url(name), 'rb').read())
         # resp = Img(src='data:image/png;base64,{}'.format(encoded_image.decode()))
         resp = make_response('data:image/png;base64,{}'.format(encoded_image))
         resp.headers['Content-Type'] = 'image/png'

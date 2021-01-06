@@ -4,7 +4,7 @@
 #  Copyright 2020 Timur Gimadiev <timur.gimadiev@gmail.com>
 #  This file is part of RePathDB.
 #
-#  AFIRdb is free software; you can redistribute it and/or modify
+#  RePathDB is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published by
 #  the Free Software Foundation; either version 3 of the License, or
 #  (at your option) any later version.
@@ -25,11 +25,14 @@ from dash_html_components import Div
 import codecs
 
 
-def load_data(files, suffix):
+def load_data(files, suffix, log_parser=log_parser ):
     """
     method for console data upload
     :param files: path to directory
     :param suffix: file types to process
+    :param log_parser: method for parsing files should take opened file and return
+    ReactionContainer(reagents=[Transistion state geometry], reactants=[Starting geometry], products=[Final geometry])
+    please see parser part for the example
     updates databases
     """
     for f in sorted(listdir(files)):

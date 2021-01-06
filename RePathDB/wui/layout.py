@@ -4,7 +4,7 @@
 #  Copyright 2020 Timur Gimadiev <timur.gimadiev@gmail.com>
 #  This file is part of RePathDB.
 #
-#  AFIRdb is free software; you can redistribute it and/or modify
+#  RePathDB is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published by
 #  the Free Software Foundation; either version 3 of the License, or
 #  (at your option) any later version.
@@ -105,8 +105,8 @@ def get_layout(app):
     configure_upload(app, UPLOAD_FOLDER_ROOT, upload_api="/API/dash-upload", )
 
     row_0 = Div([H2("Upload to Database (log files)", style={'textAlign': 'left'}),
-                 Div([Upload(id="file_upload", text='Drag and Drop files here', text_completed='''Download completed
-                                              Parsing started''', cancel_button=True, max_file_size=1800,  # 1800 Mb
+                 Div([Upload(id="file_upload", text='Drag and Drop files here', text_completed='''Download completed\n
+                                              Started parsing file: ''', cancel_button=True, max_file_size=1800,  # 1800 Mb
                              filetypes=['zip'], upload_id=uuid.uuid1(),  # Unique session id
                              ), Loading(id='file_upload-output', children=[])])])
     row_1 = Div([Div([DashMarvinJS(id='editor', marvin_url=app.get_asset_url('mjs/editor.html'), marvin_width='100%')],
