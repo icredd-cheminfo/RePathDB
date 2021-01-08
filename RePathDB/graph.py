@@ -210,15 +210,25 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
     def __init__(self, structure: MoleculeContainer = None, **kwargs):
         if structure is not None:
             se = structure.meta['energy']
+            # load ES first for validation
+            e = EquilibriumState(structure)
+
             super().__init__(signature=str(structure), energy=se)
             try:
                 self.save()
             except UniqueProperty:  # already exists
-                if self.energy > se:
-                    self.energy = se
                 self.id = self.nodes.get(signature=str(structure), lazy=True)  # get id of existing node
-                e = EquilibriumState(structure)
-                if not self.equilibrium_states.is_connected(e):  # only new ES need connection from complex.
+                self.refresh()
+
+                # new lowest ES found
+                if self.energy > se:  # this can break existing reaction barriers values!
+                    # check ES is new
+                    if self.equilibrium_states.is_connected(e):
+                        raise ValueError('same EquilibriumState with different energy exists')
+                    self.energy = se
+                    self.save()
+                    self.equilibrium_states.connect(e, {'mapping_json': next(structure.get_mapping(self.structure))})
+                elif not self.equilibrium_states.is_connected(e):  # only new ES need connection from complex.
                     self.equilibrium_states.connect(e, {'mapping_json': next(structure.get_mapping(self.structure))})
             else:  # new complex. store relations into CGRdb and Brutto
                 self.brutto.connect(Brutto(structure))
@@ -227,7 +237,6 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                     m = Molecule(s)
                     self.molecules.connect(m, {'mapping_json': next(m.structure.get_mapping(s))})
                 # store ES as-is
-                e = EquilibriumState(structure)
                 self.equilibrium_states.connect(e, {'mapping_json': {n: n for n in structure}})
             self.__es__ = e
         else:
@@ -349,6 +358,9 @@ class EquilibriumState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 self.save()
             except UniqueProperty:
                 self.id = self.nodes.get(signature=signature, lazy=True)  # get id of existing node
+                self.refresh()
+                if -.000001 < self.energy - energy < .000001:
+                    raise ValueError('same EquilibriumState with different energy exists')
         else:
             super().__init__(**kwargs)
 
@@ -376,45 +388,48 @@ class Reaction(Mixin, StructuredNode, metaclass=ExtNodeMeta):
             t = structure.reagents[0]
             te = t.meta['energy']
 
+            # store TS ans ES's first for validation
+            ts = TransitionState(t)
+            rc = Complex(r)
+            pc = Complex(p)
+            re = rc.__es__
+            pe = pc.__es__
+
             cgr = r ^ p
             super().__init__(signature=str(cgr), energy=te)
             try:
                 self.save()
             except UniqueProperty:  # reaction already exists
                 self.id = self.nodes.get(signature=str(cgr), lazy=True)  # get id of existing node
-                ts = TransitionState(t)
-                if self.energy > te:
+                self.refresh()
+
+                if self.energy > te:  # lower TS found. update barriers.
+                    if self.transition_states.is_connected(ts):
+                        raise ValueError('same TransitionState with different energy exists')
                     self.energy = te
-                rc = Complex(r)
-                pc = Complex(p)
-                if self.reactant.relationship(rc).energy > te - rc.energy:
-                    self.reactant.relationship(rc).energy = te - rc.energy
-                if self.product.relationship(pc).energy > te - pc.energy:
-                    self.product.relationship(pc).energy = te - pc.energy
-                if not self.transition_states.is_connected(ts):  # skip already connected TS
+                    self.save()
                     self.transition_states.connect(ts, {'mapping_json': next(cgr.get_mapping(self.structure))})
-                    # connect TS to ES`s
-                    re = Complex(r).__es__
-                    pe = Complex(p).__es__
-                    ts.equilibrium_states.connect(re, {'energy': te - re.energy})
-                    ts.equilibrium_states.connect(pe, {'energy': te - pe.energy})
+
+                    # new barriers!
+                    self.reactant.relationship(rc).energy = te - rc.energy
+                    self.product.relationship(pc).energy = te - pc.energy
+                elif not self.transition_states.is_connected(ts):  # skip already connected TS
+                    self.transition_states.connect(ts, {'mapping_json': next(cgr.get_mapping(self.structure))})
             else:  # new reaction
                 # store relation to Brutto
-                # self.energy = te
                 self.brutto.connect(Brutto(t))
-                # connect reactant and product complexes. todo: possible optimization of mapping
-                rc = Complex(r)
-                pc = Complex(p)
+
+                # connect reactant and product complexes.
                 self.reactant.connect(rc, {'mapping_json': next(rc.structure.get_mapping(r)), 'energy': te - rc.energy})
                 self.product.connect(pc, {'mapping_json': next(pc.structure.get_mapping(p)), 'energy': te - pc.energy})
 
                 # connect TS to R
-                ts = TransitionState(t)
                 self.transition_states.connect(ts, {'mapping_json': {n: n for n in t}})
-                # connect TS to ES`s
-                re = rc.__es__
-                pe = pc.__es__
+
+            # connect new TS to new ES`s
+            if not ts.equilibrium_states.is_connected(re):  # skip already connected TS-ES
                 ts.equilibrium_states.connect(re, {'energy': te - re.energy})
+            if not ts.equilibrium_states.is_connected(pe):  # skip already connected TS-ES
                 ts.equilibrium_states.connect(pe, {'energy': te - pe.energy})
         else:
             super().__init__(**kwargs)
@@ -477,6 +492,9 @@ class TransitionState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 self.save()
             except UniqueProperty:
                 self.id = self.nodes.get(signature=signature, lazy=True)  # get id of existing node
+                self.refresh()
+                if -.000001 < self.energy - energy < .000001:
+                    raise ValueError('same TransitionState with different energy exists')
         else:
             super().__init__(**kwargs)
 
