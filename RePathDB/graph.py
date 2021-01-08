@@ -143,10 +143,13 @@ class Molecule(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 seen.update(new_seen)
                 old_len = len(init_path)
             cur_len = len(init_path) + 1 < max_len
-            for i, r in enumerate(cur.reactant.all()):
+            tmp = []
+            for r in cur.reactant.all():
                 barrier = (r.energy - cur.energy)  # * 627.51 have not yet decided which units
                 # barrier = barrier if barrier > prev_barrier else prev_barrier
                 prod = r.product.all()[0]
+                tmp.append((barrier, prod, r))
+            for barrier, prod, r in sorted(tmp,key=lambda x: x[0]):
                 if prod in final_compl:
                     path = init_path.copy()
                     path.append((r, barrier))
@@ -164,12 +167,12 @@ class Molecule(Mixin, StructuredNode, metaclass=ExtNodeMeta):
             return False
         return bool(next(self.search_path(target), False))
 
-    def get_effective_paths(self, target: 'Molecule', limit: int = 10):
+    def get_effective_paths(self, target: 'Molecule', limit: int = 10, max_path = 30):
         if limit <= 0:
             raise ValueError('limit should be positive')
 
         paths = []
-        for path in islice(self.search_path(target, limit), 30):
+        for path in islice(self.search_path(target, limit), max_path):
             nodes = []
             costs = []
             total = 0
@@ -242,7 +245,7 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
         else:
             super().__init__(**kwargs)
 
-    def get_effective_paths(self, target: 'Complex', limit: int = 10):
+    def get_effective_paths(self, target: 'Complex', limit: int = 10, max_path = 30):
         if not limit:
             raise ValueError('limit should be positive')
         paths = []
@@ -255,7 +258,7 @@ class Complex(Mixin, StructuredNode, metaclass=ExtNodeMeta):
                 costs.append(barrier) if i % 2 == 0 else costs.append(0)
                 total += costs[-1]
             paths.append(weighted_path(nodes, costs, total))
-            if n == 30:
+            if n == max_path:
                 return paths
         return paths
 
