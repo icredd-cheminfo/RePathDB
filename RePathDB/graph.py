@@ -359,7 +359,7 @@ class EquilibriumState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
             except UniqueProperty:
                 self.id = self.nodes.get(signature=signature, lazy=True)  # get id of existing node
                 self.refresh()
-                if -.000001 < self.energy - energy < .000001:
+                if not -.0001 < self.energy - energy < .0001:
                     raise ValueError('same EquilibriumState with different energy exists')
         else:
             super().__init__(**kwargs)
@@ -493,7 +493,7 @@ class TransitionState(Mixin, StructuredNode, metaclass=ExtNodeMeta):
             except UniqueProperty:
                 self.id = self.nodes.get(signature=signature, lazy=True)  # get id of existing node
                 self.refresh()
-                if -.000001 < self.energy - energy < .000001:
+                if not -.0001 < self.energy - energy < .0001:
                     raise ValueError('same TransitionState with different energy exists')
         else:
             super().__init__(**kwargs)
