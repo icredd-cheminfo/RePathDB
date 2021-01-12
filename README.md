@@ -8,9 +8,9 @@ extract it as mjs and put into project directory
 
 DOCKER INSTALLATION
 =====
-docker build . -t repathdb
+docker build -f Dockerfile_with_jupyter . -t repathdb:jupyter
 
-docker run -d -p 5432:5432 -p 5000:5000 -p 7474:7474 -p 7687:7687 repathdb
+docker run -d -p 5432:5432 -p 5000:5000 -p 7474:7474 -p 7687:7687 -p 9999:9999 repathdb:jupyter
 
 port 5432 for postgres connections
 
@@ -19,6 +19,8 @@ port 5000 for RePathDB visualisation
 port 7474 for web interface of neo4j
 
 port 7687 for bolt connection of neo4j
+
+port 9999 for jupyter connection
 
 INSTALLATION on the system (not recomended)
 =====
