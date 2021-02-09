@@ -36,7 +36,7 @@ RUN git clone https://github.com/stsouko/smlar.git && \
     pip3 install -U numpy numba compress-pickle
 RUN pip3 install -U dash-uploader  psycopg2-binary\
     git+https://github.com/cimm-kzn/CIMtools.git@master#egg=CIMtools \
-    git+https://github.com/stsouko/CGRdb.git@master#egg=CGRdb[postgres] cgrtools[clean2djit,MRV]
+    git+https://github.com/stsouko/CGRdb.git@4.0#egg=CGRdb cgrtools[clean2djit,MRV]
 
 # setup CGRdb
 COPY config.json config.json

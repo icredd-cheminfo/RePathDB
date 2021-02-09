@@ -35,7 +35,7 @@ setup(
     author_email='timur.gimadiev@gmail.com',
     python_requires='>=3.6.0',
     install_requires=['cgrtools[mrv,clean2djit]',
-                      'CGRdb @ git+https://github.com/stsouko/CGRdb.git@4.0#egg=CGRdb[postgres]',
+                      'CGRdb>=4.0.0,<4.2',
                       'neomodel==3.3.2', 'dash==1.15.0', 'dash_marvinjs', 'mol3d_dash', 'plotly==4.9.0', 'dash_network',
                       'dash_uploader==0.3.1','lxml>=4.1'],
     long_description=(Path(__file__).parent / 'README.md').read_text(),
